@@ -195,12 +195,12 @@ const partsLibrary = {
         draw: (ctx, width, height, holeSize) => {
             const radius = width / 2; // Radius based on width
             const centerX = width / 2;
-            const centerY = height; // Center at base level, arc extends upward
+            const centerY = 0; // Center at base level, arc extends upward
 
             // Draw D shape with radius at top
             ctx.beginPath();
-            ctx.moveTo(0, height); // Bottom-left
-            ctx.lineTo(width, height); // Bottom-right
+            ctx.moveTo(0, 0); // Bottom-left
+            ctx.lineTo(width, 0); // Bottom-right
             ctx.arc(centerX, centerY, radius, 0, Math.PI, true); // Top semicircle (counterclockwise)
             ctx.closePath();
             ctx.fillStyle = "#666";
@@ -210,14 +210,14 @@ const partsLibrary = {
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(centerX, centerY - radius / 2, holeRadius, 0, Math.PI * 2); // Hole centered vertically in arc
+            ctx.arc(centerX, radius / 2, holeRadius, 0, Math.PI * 2); // Hole centered vertically in arc
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
         toDXF: (width, height, holeSize) => {
             const radius = width / 2;
             const centerX = width / 2;
-            const centerY = height; // Center at base level
+            const centerY = 0; // Center at base level in canvas coords
             const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
@@ -230,19 +230,19 @@ const partsLibrary = {
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = centerX + radius * Math.cos(angle);
-                const y = centerY - radius * Math.sin(angle); // Canvas coords (y decreases upward)
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
+                const y = centerY + radius * Math.sin(angle); // Canvas coords (y increases upward)
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString()); // No flip needed, y=0 at bottom
             }
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
             dxf.push("0", "SEQEND");
 
             // Single hole in the top semicircle (adjusted for AutoCAD y-axis)
-            const holeY = centerY - radius / 2; // Center of arc in canvas coords
+            const holeY = radius / 2; // Center of arc in canvas coords
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
                 "10", centerX.toString(),
-                "20", (height - holeY).toString(), // Flip y for AutoCAD
+                "20", holeY.toString(), // No flip, matches AutoCAD y
                 "40", holeRadius.toString()
             );
 
@@ -303,7 +303,9 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        ctx.translate(200 - width / 2, 200 - height / 2); // Center based on input width and height
+        // Adjust translation to account for total height (height + radius)
+        const totalHeight = partType === "D Bracket" ? height : height;
+        ctx.translate(200 - width / 2, 200 - totalHeight / 2);
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
