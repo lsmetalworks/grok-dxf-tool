@@ -232,7 +232,7 @@ const partsLibrary = {
                 const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = centerX + radius * Math.cos(angle);
                 const y = arcBaseY - radius * Math.sin(angle); // Canvas coords (upward)
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString()); // No flip needed, y matches AutoCAD
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
             }
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (height - radius).toString()); // Right side down from arc
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
@@ -245,7 +245,7 @@ const partsLibrary = {
                 "0", "CIRCLE",
                 "8", "0",
                 "10", centerX.toString(),
-                "20", holeY.toString(), // No flip, matches AutoCAD y
+                "20", (height - holeY).toString(), // Flip y for AutoCAD
                 "40", holeRadius.toString()
             );
 
