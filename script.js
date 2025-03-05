@@ -190,66 +190,68 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     },
-    const dBracket = {
-    name: "D Bracket",
-    draw: (ctx, width, height, holeSize) => {
-        const radius = height / 2; // Correct radius to be half the height
-        const centerX = width / 2;
-        const centerY = height; // Base of semicircle at bottom
+    dBracket: {
+        name: "D Bracket",
+        draw: (ctx, width, height, holeSize) => {
+            const radius = width / 2; // Radius based on width for semicircle
+            const centerX = width / 2;
+            const arcBaseY = height - radius; // Base of arc, sides extend down
 
-        // Draw the D-bracket shape
-        ctx.beginPath();
-        ctx.moveTo(0, height); // Left-bottom
-        ctx.lineTo(width, height); // Right-bottom
-        ctx.arc(centerX, height, radius, Math.PI, 0, false); // Semicircle on top
-        ctx.closePath();
-        ctx.fillStyle = "#666";
-        ctx.fill();
+            // Draw D shape with vertical sides and top semicircle
+            ctx.beginPath();
+            ctx.moveTo(0, height); // Bottom-left
+            ctx.lineTo(0, arcBaseY); // Left vertical side up to arc base
+            ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Top semicircle (clockwise)
+            ctx.lineTo(width, height); // Right vertical side down to base
+            ctx.closePath();
+            ctx.fillStyle = "#666";
+            ctx.fill();
 
-        // Cut out the hole in the top semicircle
-        ctx.globalCompositeOperation = "destination-out";
-        const holeRadius = holeSize / 2;
-        ctx.beginPath();
-        ctx.arc(centerX, height - radius, holeRadius, 0, Math.PI * 2); // Hole at top-center
-        ctx.fill();
-        ctx.globalCompositeOperation = "source-over";
-    },
+            // Cut out the hole in the top semicircle
+            ctx.globalCompositeOperation = "destination-out";
+            const holeRadius = (holeSize / 2) * 10;
+            ctx.beginPath();
+            ctx.arc(centerX, arcBaseY - radius / 2, holeRadius, 0, Math.PI * 2); // Hole centered in arc
+            ctx.fill();
+            ctx.globalCompositeOperation = "source-over";
+        },
+        toDXF: (width, height, holeSize) => {
+            const radius = width / 2;
+            const centerX = width / 2;
+            const arcBaseY = height - radius; // Base of arc in canvas coords
+            const holeRadius = holeSize / 2;
+            let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
-    toDXF: (width, height, holeSize) => {
-        const radius = height / 2;
-        const centerX = width / 2;
-        const centerY = height; // Bottom of semicircle
-        const holeRadius = holeSize / 2;
-        let dxf = ["0", "SECTION", "2", "ENTITIES"];
+            // D shape outline (oriented for AutoCAD: bottom at y=0)
+            const steps = 16;
+            dxf.push("0", "POLYLINE", "8", "0", "66", "1");
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", (height - radius).toString()); // Left side up to arc base
+            // Top semicircle (left to right, counterclockwise)
+            for (let i = 0; i <= steps; i++) {
+                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
+                const x = centerX + radius * Math.cos(angle);
+                const y = arcBaseY - radius * Math.sin(angle); // Canvas coords (upward)
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
+            }
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (height - radius).toString()); // Right side down from arc
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
+            dxf.push("0", "SEQEND");
 
-        // D shape outline
-        const steps = 16;
-        dxf.push("0", "POLYLINE", "8", "0", "66", "1");
-        dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left
-        dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
+            // Single hole at top center (adjusted for AutoCAD y-axis)
+            const holeY = arcBaseY - radius / 2; // Center of arc in canvas
+            dxf.push(
+                "0", "CIRCLE",
+                "8", "0",
+                "10", centerX.toString(),
+                "20", (height - holeY).toString(), // Flip y for AutoCAD
+                "40", holeRadius.toString()
+            );
 
-        // Upper semicircle (counterclockwise)
-        for (let i = 0; i <= steps; i++) {
-            const angle = Math.PI - (Math.PI * i) / steps; // π to 0
-            const x = centerX + radius * Math.cos(angle);
-            const y = centerY - radius * Math.sin(angle);
-            dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+            dxf.push("0", "ENDSEC", "0", "EOF");
+            return dxf.join("\n");
         }
-
-        dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close shape
-        dxf.push("0", "SEQEND");
-
-        // Hole at top-center
-        dxf.push(
-            "0", "CIRCLE",
-            "8", "0",
-            "10", centerX.toString(),
-            "20", (centerY - radius).toString(), // Hole in the center of semicircle
-            "40", holeRadius.toString()
-        );
-
-        dxf.push("0", "ENDSEC", "0", "EOF");
-        return dxf.join("\n");
     }
 };
 
@@ -304,7 +306,7 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        // Center based on width and height (radius = height for D Bracket)
+        // Center based on width and height
         const totalHeight = partType === "D Bracket" ? height : height;
         ctx.translate(200 - width / 2, 200 - totalHeight / 2);
         try {
