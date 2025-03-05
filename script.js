@@ -1,4 +1,4 @@
-// Parts library with fixed DXF for holed plate
+// Parts library with corrected DXF for holed plate
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -131,6 +131,7 @@ const partsLibrary = {
             if (cornerRadius > 0) {
                 const steps = 8; // Points per arc
                 dxf.push("0", "POLYLINE", "8", "0", "66", "1");
+
                 // Top side (left to right)
                 dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", "0.0");
                 for (let i = 1; i < steps; i++) { // Top-right arc
@@ -139,6 +140,8 @@ const partsLibrary = {
                     const y = cornerRadius + cornerRadius * Math.sin(angle);
                     dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
                 }
+                dxf.push("0", "VERTEX", "8", "0", "10", (width - cornerRadius).toString(), "20", cornerRadius.toString());
+
                 // Right side (top to bottom)
                 dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", cornerRadius.toString());
                 for (let i = 1; i < steps; i++) { // Bottom-right arc
@@ -147,6 +150,8 @@ const partsLibrary = {
                     const y = height - cornerRadius + cornerRadius * Math.sin(angle);
                     dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
                 }
+                dxf.push("0", "VERTEX", "8", "0", "10", (width - cornerRadius).toString(), "20", (height - cornerRadius).toString());
+
                 // Bottom side (right to left)
                 dxf.push("0", "VERTEX", "8", "0", "10", (width - cornerRadius).toString(), "20", height.toString());
                 for (let i = 1; i < steps; i++) { // Bottom-left arc
@@ -155,15 +160,18 @@ const partsLibrary = {
                     const y = height - cornerRadius + cornerRadius * Math.sin(angle);
                     dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
                 }
+                dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", (height - cornerRadius).toString());
+
                 // Left side (bottom to top)
                 dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", (height - cornerRadius).toString());
                 for (let i = 1; i < steps; i++) { // Top-left arc
                     const angle = Math.PI + (Math.PI / 2) * (i / steps);
-                    const x = cornerRadius + cornerRadius * Math.cos(angle);
+                    const x = cornerRadius * Math.cos(angle);
                     const y = cornerRadius + cornerRadius * Math.sin(angle);
                     dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
                 }
                 dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", "0.0"); // Close
+
                 dxf.push("0", "SEQEND");
             } else {
                 dxf.push(
