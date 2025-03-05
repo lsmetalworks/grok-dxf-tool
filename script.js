@@ -193,9 +193,9 @@ const partsLibrary = {
     dBracket: {
         name: "D Bracket",
         draw: (ctx, width, height, holeSize) => {
-            const radius = width / 2; // Radius based on width
+            const radius = height; // Height controls total vertical extent
             const centerX = width / 2;
-            const centerY = 0; // Center at base level, arc extends upward
+            const centerY = 0; // Base at y=0, arc extends upward
 
             // Draw D shape with radius at top
             ctx.beginPath();
@@ -215,7 +215,7 @@ const partsLibrary = {
             ctx.globalCompositeOperation = "source-over";
         },
         toDXF: (width, height, holeSize) => {
-            const radius = width / 2;
+            const radius = height;
             const centerX = width / 2;
             const centerY = 0; // Center at base level in canvas coords
             const holeRadius = holeSize / 2;
@@ -285,7 +285,7 @@ function previewPart() {
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
     const holeSize = (partType === "Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
-    const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
+    const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document poziomkaElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
@@ -303,7 +303,7 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        // Adjust translation to account for total height (height + radius)
+        // Center based on width and height (radius = height for D Bracket)
         const totalHeight = partType === "D Bracket" ? height : height;
         ctx.translate(200 - width / 2, 200 - totalHeight / 2);
         try {
