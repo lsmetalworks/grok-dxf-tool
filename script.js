@@ -134,7 +134,7 @@ const partsLibrary = {
 
                 // Top side (left to right)
                 dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", "0.0");
-                for (let i = 1; i <= steps; i++) { // Top-right arc
+                for (let i = 0; i <= steps; i++) { // Top-right arc
                     const angle = -Math.PI / 2 + (Math.PI / 2) * (i / steps);
                     const x = width - cornerRadius + cornerRadius * Math.cos(angle);
                     const y = cornerRadius + cornerRadius * Math.sin(angle);
@@ -143,7 +143,7 @@ const partsLibrary = {
 
                 // Right side (top to bottom)
                 dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", cornerRadius.toString());
-                for (let i = 1; i <= steps; i++) { // Bottom-right arc
+                for (let i = 0; i <= steps; i++) { // Bottom-right arc
                     const angle = 0 + (Math.PI / 2) * (i / steps);
                     const x = width - cornerRadius + cornerRadius * Math.cos(angle);
                     const y = height - cornerRadius + cornerRadius * Math.sin(angle);
@@ -152,7 +152,7 @@ const partsLibrary = {
 
                 // Bottom side (right to left)
                 dxf.push("0", "VERTEX", "8", "0", "10", (width - cornerRadius).toString(), "20", height.toString());
-                for (let i = 1; i <= steps; i++) { // Bottom-left arc
+                for (let i = 0; i <= steps; i++) { // Bottom-left arc
                     const angle = Math.PI / 2 + (Math.PI / 2) * (i / steps);
                     const x = cornerRadius + cornerRadius * Math.cos(angle);
                     const y = height - cornerRadius + cornerRadius * Math.sin(angle);
@@ -161,13 +161,14 @@ const partsLibrary = {
 
                 // Left side (bottom to top)
                 dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", (height - cornerRadius).toString());
-                for (let i = 1; i <= steps; i++) { // Top-left arc
+                for (let i = 0; i <= steps; i++) { // Top-left arc
                     const angle = Math.PI + (Math.PI / 2) * (i / steps);
-                    const x = cornerRadius + cornerRadius * Math.cos(angle);
+                    const x = cornerRadius + cornerRadius * Math.cos(angle); // Center at (cornerRadius, cornerRadius)
                     const y = cornerRadius + cornerRadius * Math.sin(angle);
                     dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
                 }
-                dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", "0.0"); // Close
+                // Explicitly close at starting point
+                dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", "0.0");
 
                 dxf.push("0", "SEQEND");
             } else {
