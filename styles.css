@@ -1,0 +1,40 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+.container {
+    display: flex;
+    gap: 20px;
+}
+.sidebar {
+    width: 200px;
+}
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+.sidebar li {
+    padding: 10px;
+    cursor: pointer;
+    background: #f0f0f0;
+    margin-bottom: 5px;
+}
+.sidebar li:hover {
+    background: #ddd;
+}
+.main {
+    flex-grow: 1;
+}
+#config-form {
+    margin-bottom: 20px;
+}
+#config-form label {
+    display: block;
+    margin: 10px 0 5px;
+}
+#config-form input {
+    width: 100px;
+}
+#part-preview {
+    border: 1px solid #ccc;
+}
