@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket height scaling and upward radius
+// Parts library with corrected D Bracket height and width scaling
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -193,14 +193,14 @@ const partsLibrary = {
     dBracket: {
         name: "D Bracket",
         draw: (ctx, width, height, holeSize) => {
-            // Draw D shape with radius at top, height controls vertical extent
-            const radius = height; // Radius = height for full semicircle
+            // Draw D shape with radius based on height, width independent
+            const radius = height; // Height controls vertical extent
             const centerX = width / 2;
             const centerY = height; // Center at base level, arc extends upward
 
             ctx.beginPath();
             ctx.moveTo(0, height); // Base at bottom
-            ctx.lineTo(width, height); // Base to right
+            ctx.lineTo(width, height); // Base to right, using input width
             ctx.arc(centerX, centerY, radius, Math.PI, 0, false); // Upper semicircle (clockwise)
             ctx.closePath();
             ctx.fillStyle = "#666";
@@ -226,7 +226,7 @@ const partsLibrary = {
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
-            // Upper semicircle (left to right, clockwise)
+            // Upper semicircle (left to right, counterclockwise)
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = centerX + radius * Math.cos(angle);
