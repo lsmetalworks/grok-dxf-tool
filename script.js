@@ -1,4 +1,4 @@
-// Parts library with new D Bracket
+// Parts library with rotated D Bracket
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -193,21 +193,20 @@ const partsLibrary = {
     dBracket: {
         name: "D Bracket",
         draw: (ctx, width, height, holeSize) => {
-            // Draw D shape
+            // Draw D shape with radius at top
             ctx.beginPath();
-            ctx.moveTo(0, 0); // Top-left
-            ctx.lineTo(width, 0); // Top-right
-            ctx.arc(width, height / 2, height / 2, -Math.PI / 2, Math.PI / 2); // Right semicircle
-            ctx.lineTo(0, height); // Bottom-left
+            ctx.moveTo(0, height); // Bottom-left
+            ctx.lineTo(width, height); // Bottom-right
+            ctx.arc(width / 2, 0, width / 2, 0, Math.PI, true); // Top semicircle (counterclockwise)
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Cut out the hole on the radiused side
+            // Cut out the hole on the radiused side (top)
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(width, height / 2, holeRadius, 0, Math.PI * 2); // Hole centered on arc
+            ctx.arc(width / 2, 0, holeRadius, 0, Math.PI * 2); // Hole at top center
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
@@ -215,27 +214,27 @@ const partsLibrary = {
             const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
-            // D shape outline
+            // D shape outline (radius at top)
             const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Top-left
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Top-right
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Bottom-left
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString()); // Bottom-right
+            // Top semicircle (right to left, counterclockwise)
             for (let i = 0; i <= steps; i++) {
-                const angle = -Math.PI / 2 + Math.PI * (i / steps);
-                const x = width + (height / 2) * Math.cos(angle);
-                const y = height / 2 + (height / 2) * Math.sin(angle);
+                const angle = Math.PI - Math.PI * (i / steps); // 0 to π counterclockwise
+                const x = width / 2 + (width / 2) * Math.cos(angle);
+                const y = height / 2 - (width / 2) * Math.sin(angle); // Adjust y based on center at (width/2, 0)
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Bottom-left
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Close
             dxf.push("0", "SEQEND");
 
-            // Single hole on radiused side
+            // Single hole at top center
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
-                "10", width.toString(),
-                "20", (height / 2).toString(),
+                "10", (width / 2).toString(),
+                "20", "0.0",
                 "40", holeRadius.toString()
             );
 
@@ -281,7 +280,6 @@ function previewPart() {
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
-    // Debugging logs
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
 
     if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
