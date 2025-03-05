@@ -2,39 +2,74 @@ body {
     font-family: Arial, sans-serif;
     margin: 20px;
 }
+
 .container {
     display: flex;
     gap: 20px;
+    justify-content: center;
 }
+
 .sidebar {
     width: 200px;
+    flex-shrink: 0;
 }
+
+.sidebar h2 {
+    margin-top: 0;
+}
+
 .sidebar ul {
     list-style: none;
     padding: 0;
 }
+
 .sidebar li {
     padding: 10px;
     cursor: pointer;
     background: #f0f0f0;
     margin-bottom: 5px;
 }
+
 .sidebar li:hover {
     background: #ddd;
 }
-.main {
+
+.preview {
     flex-grow: 1;
+    max-width: 400px; /* Matches canvas width */
+    text-align: center;
 }
+
+.preview h2 {
+    margin-top: 0;
+}
+
+#part-preview {
+    border: 1px solid #ccc;
+}
+
+.config {
+    width: 250px;
+    flex-shrink: 0;
+}
+
+.config h2 {
+    margin-top: 0;
+}
+
 #config-form {
     margin-bottom: 20px;
 }
+
 #config-form label {
     display: block;
     margin: 10px 0 5px;
 }
+
 #config-form input {
     width: 100px;
 }
-#part-preview {
-    border: 1px solid #ccc;
+
+#config-form button {
+    margin-top: 10px;
 }
