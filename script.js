@@ -195,14 +195,14 @@ const partsLibrary = {
         draw: (ctx, width, height, holeSize) => {
             const radius = width / 2; // Radius based on width for semicircle
             const centerX = width / 2;
-            const arcBaseY = height - radius; // Arc base at height - radius
+            const arcBaseY = height - radius; // Arc base at height - radius from base
 
             // Draw D shape with vertical sides and top semicircle
             ctx.beginPath();
-            ctx.moveTo(0, height); // Bottom-left
+            ctx.moveTo(0, 0); // Bottom-left at y=0
             ctx.lineTo(0, arcBaseY); // Left vertical side up to arc base
             ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Top semicircle (clockwise)
-            ctx.lineTo(width, height); // Right vertical side down to base
+            ctx.lineTo(width, 0); // Right vertical side down to base
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -232,7 +232,7 @@ const partsLibrary = {
                 const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = centerX + radius * Math.cos(angle);
                 const y = arcBaseY - radius * Math.sin(angle); // Canvas coords (upward)
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString()); // No flip needed, y matches AutoCAD
             }
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (height - radius).toString()); // Right side down from arc
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
@@ -245,7 +245,7 @@ const partsLibrary = {
                 "0", "CIRCLE",
                 "8", "0",
                 "10", centerX.toString(),
-                "20", (height - holeY).toString(), // Flip y for AutoCAD
+                "20", holeY.toString(), // No flip, matches AutoCAD y
                 "40", holeRadius.toString()
             );
 
@@ -258,7 +258,7 @@ const partsLibrary = {
 // Event listeners for part selection
 document.querySelectorAll("#parts-list li").forEach(item => {
     item.addEventListener("click", () => {
-        const partType = item.getAttribute("data-part"); // Fixed typo here
+        const partType = item.getAttribute("data-part");
         document.getElementById("config-form").style.display = "block";
         document.getElementById("part-type").textContent = partsLibrary[partType].name;
         document.getElementById("width").value = "";
@@ -306,7 +306,7 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        // Center based on width and height
+        // Center based on width and total shape height
         const totalHeight = partType === "D Bracket" ? height : height;
         ctx.translate(200 - width / 2, 200 - totalHeight / 2);
         try {
