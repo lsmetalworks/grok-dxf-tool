@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket scaling and DXF matching
+// Parts library with corrected D Bracket height scaling
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -193,15 +193,15 @@ const partsLibrary = {
     dBracket: {
         name: "D Bracket",
         draw: (ctx, width, height, holeSize) => {
-            const radius = Math.min(width, height) / 2; // Ensure proper scaling
+            const radius = width / 2; // Radius based on width
             const centerX = width / 2;
-            const centerY = height - radius; // Center of the arc
+            const centerY = height; // Center at base level, arc extends upward
 
-            // Draw D shape with properly scaled top semicircle
+            // Draw D shape with radius at top
             ctx.beginPath();
-            ctx.moveTo(0, height);
-            ctx.lineTo(width, height);
-            ctx.arc(centerX, centerY, radius, 0, Math.PI, true);
+            ctx.moveTo(0, height); // Bottom-left
+            ctx.lineTo(width, height); // Bottom-right
+            ctx.arc(centerX, centerY, radius, 0, Math.PI, true); // Top semicircle (counterclockwise)
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -210,14 +210,14 @@ const partsLibrary = {
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(centerX, centerY, holeRadius, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY - radius / 2, holeRadius, 0, Math.PI * 2); // Hole centered vertically in arc
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
         toDXF: (width, height, holeSize) => {
-            const radius = Math.min(width, height) / 2;
+            const radius = width / 2;
             const centerX = width / 2;
-            const centerY = height - radius; // Center of the arc in canvas coords
+            const centerY = height; // Center at base level
             const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
@@ -230,18 +230,19 @@ const partsLibrary = {
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = centerX + radius * Math.cos(angle);
-                const y = centerY - radius * Math.sin(angle); // Canvas coords
+                const y = centerY - radius * Math.sin(angle); // Canvas coords (y decreases upward)
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
             }
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
             dxf.push("0", "SEQEND");
 
-            // Single hole at top center (adjusted for AutoCAD y-axis)
+            // Single hole in the top semicircle (adjusted for AutoCAD y-axis)
+            const holeY = centerY - radius / 2; // Center of arc in canvas coords
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
                 "10", centerX.toString(),
-                "20", (height - centerY).toString(), // Flip y for AutoCAD
+                "20", (height - holeY).toString(), // Flip y for AutoCAD
                 "40", holeRadius.toString()
             );
 
