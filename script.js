@@ -193,56 +193,22 @@ const partsLibrary = {
     dBracket: {
         name: "D Bracket",
         draw: (ctx, width, height, holeSize) => {
-            // Draw D shape with radius at top, respecting input width and height
-            const radius = width / 2;
             ctx.beginPath();
-            ctx.moveTo(0, height); // Bottom-left
-            ctx.lineTo(width, height); // Bottom-right
-            ctx.arc(width / 2, height - radius, radius, 0, Math.PI, true); // Top semicircle (counterclockwise)
+            ctx.moveTo(0, height); 
+            ctx.lineTo(width, height); 
+            ctx.lineTo(width, width / 2); // Vertical section on the right
+            ctx.arc(width / 2, width / 2, width / 2, 0, Math.PI, true); // Corrected arc placement
+            ctx.lineTo(0, width / 2); // Vertical section on the left
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
-
-            // Cut out the hole on the radiused side (top)
+            
+            // Cut out hole
             ctx.globalCompositeOperation = "destination-out";
-            const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(width / 2, height - radius, holeRadius, 0, Math.PI * 2); // Hole at top center
+            ctx.arc(width / 2, width / 2, holeSize / 2, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
-        },
-        toDXF: (width, height, holeSize) => {
-            const radius = width / 2;
-            const holeRadius = holeSize / 2;
-            let dxf = ["0", "SECTION", "2", "ENTITIES"];
-
-            // D shape outline (radius at top, oriented for AutoCAD: bottom at y=0)
-            const steps = 16;
-            dxf.push("0", "POLYLINE", "8", "0", "66", "1");
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
-            // Top semicircle (right to left, counterclockwise)
-            for (let i = 0; i <= steps; i++) {
-                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
-                const x = width / 2 + radius * Math.cos(angle);
-                const y = height - radius * Math.sin(angle); // Center at (width/2, height - radius)
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
-            }
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
-            dxf.push("0", "SEQEND");
-
-            // Single hole at top center (adjusted for AutoCAD y-axis)
-            const holeY = height - radius; // Top center in canvas coords
-            dxf.push(
-                "0", "CIRCLE",
-                "8", "0",
-                "10", (width / 2).toString(),
-                "20", (height - holeY).toString(), // Flip y for AutoCAD
-                "40", holeRadius.toString()
-            );
-
-            dxf.push("0", "ENDSEC", "0", "EOF");
-            return dxf.join("\n");
         }
     }
 };
