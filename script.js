@@ -78,7 +78,7 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     },
-    rectangle: {
+        rectangle: {
         name: "Rectangle Plate",
         draw: (ctx, width, height, thickness) => {
             ctx.fillStyle = "#666";
@@ -89,8 +89,8 @@ const partsLibrary = {
                 "0", "SECTION",
                 "2", "ENTITIES",
                 "0", "POLYLINE",
-                "8", "0",
-                "66", "1",
+                "8", "0", // Layer
+                "66", "1", // Vertices follow
                 "0", "VERTEX",
                 "8", "0",
                 "10", "0.0", "20", "0.0", // (0, 0)
@@ -103,6 +103,9 @@ const partsLibrary = {
                 "0", "VERTEX",
                 "8", "0",
                 "10", "0.0", "20", height.toString(), // (0, height)
+                "0", "VERTEX",
+                "8", "0",
+                "10", "0.0", "20", "0.0", // Back to (0, 0) to close
                 "0", "SEQEND",
                 "0", "ENDSEC",
                 "0", "EOF"
