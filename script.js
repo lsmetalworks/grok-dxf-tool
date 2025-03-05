@@ -164,7 +164,7 @@ const partsLibrary = {
                     "0", "POLYLINE", "8", "0", "66", "1",
                     "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
                     "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0",
-                    "0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString(),
+                    "0", "VECTOR", "8", "0", "10", width.toString(), "20", height.toString(),
                     "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(),
                     "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
                     "0", "SEQEND"
@@ -221,20 +221,21 @@ const partsLibrary = {
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString()); // Bottom-right
             // Top semicircle (right to left, counterclockwise)
             for (let i = 0; i <= steps; i++) {
-                const angle = Math.PI * (1 - i / steps); // π to 0 counterclockwise
+                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = width / 2 + (width / 2) * Math.cos(angle);
-                const y = height - (width / 2) * (1 - Math.sin(angle)); // Center at (width/2, height)
+                const y = height - (width / 2) * Math.sin(angle); // Center at (width/2, height)
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Close
             dxf.push("0", "SEQEND");
 
-            // Single hole at top center
+            // Single hole inset from the top center
+            const holeY = height - (width / 2) + holeRadius; // Move hole down by its radius to avoid circumference
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
                 "10", (width / 2).toString(),
-                "20", (height - width / 2).toString(), // Top of arc
+                "20", holeY.toString(),
                 "40", holeRadius.toString()
             );
 
