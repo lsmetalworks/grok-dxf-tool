@@ -197,15 +197,12 @@ const partsLibrary = {
             const centerX = width / 2;
             const arcBaseY = height - radius; // Arc base at height - radius
 
-            // Ensure height is at least radius to avoid negative side lengths
-            const adjustedHeight = Math.max(height, radius);
-
             // Draw D shape with vertical sides and top semicircle
             ctx.beginPath();
-            ctx.moveTo(0, adjustedHeight); // Bottom-left
+            ctx.moveTo(0, height); // Bottom-left
             ctx.lineTo(0, arcBaseY); // Left vertical side up to arc base
             ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Top semicircle (clockwise)
-            ctx.lineTo(width, adjustedHeight); // Right vertical side down to base
+            ctx.lineTo(width, height); // Right vertical side down to base
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -221,8 +218,7 @@ const partsLibrary = {
         toDXF: (width, height, holeSize) => {
             const radius = width / 2;
             const centerX = width / 2;
-            const adjustedHeight = Math.max(height, radius); // Ensure height accommodates arc
-            const arcBaseY = adjustedHeight - radius; // Base of arc in canvas coords
+            const arcBaseY = height - radius; // Base of arc in canvas coords
             const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
@@ -230,15 +226,15 @@ const partsLibrary = {
             const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", (adjustedHeight - radius).toString()); // Left side up to arc base
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", (height - radius).toString()); // Left side up to arc base
             // Top semicircle (left to right, counterclockwise)
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = centerX + radius * Math.cos(angle);
                 const y = arcBaseY - radius * Math.sin(angle); // Canvas coords (upward)
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (adjustedHeight - y).toString()); // Flip y for AutoCAD
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
             }
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (adjustedHeight - radius).toString()); // Right side down from arc
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (height - radius).toString()); // Right side down from arc
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
             dxf.push("0", "SEQEND");
@@ -249,7 +245,7 @@ const partsLibrary = {
                 "0", "CIRCLE",
                 "8", "0",
                 "10", centerX.toString(),
-                "20", (adjustedHeight - holeY).toString(), // Flip y for AutoCAD
+                "20", (height - holeY).toString(), // Flip y for AutoCAD
                 "40", holeRadius.toString()
             );
 
@@ -262,7 +258,7 @@ const partsLibrary = {
 // Event listeners for part selection
 document.querySelectorAll("#parts-list li").forEach(item => {
     item.addEventListener("click", () => {
-        const partType = item.getElementById("data-part");
+        const partType = item.getAttribute("data-part"); // Fixed typo here
         document.getElementById("config-form").style.display = "block";
         document.getElementById("part-type").textContent = partsLibrary[partType].name;
         document.getElementById("width").value = "";
@@ -311,7 +307,7 @@ function previewPart() {
     if (part) {
         ctx.save();
         // Center based on width and height
-        const totalHeight = partType === "D Bracket" ? Math.max(height, width / 2) : height;
+        const totalHeight = partType === "D Bracket" ? height : height;
         ctx.translate(200 - width / 2, 200 - totalHeight / 2);
         try {
             if (partType === "Holed Mounting Plate") {
