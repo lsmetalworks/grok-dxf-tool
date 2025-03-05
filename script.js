@@ -1,4 +1,4 @@
-// Parts library with updated holed plate
+// Parts library with radius option for holed plate
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -87,14 +87,26 @@ const partsLibrary = {
     },
     holedPlate: {
         name: "Holed Mounting Plate",
-        draw: (ctx, width, height, holeSize, holeInset) => {
-            // Draw the solid rectangle
+        draw: (ctx, width, height, holeSize, holeInset, cornerRadius) => {
+            // Draw the rectangle with rounded corners
+            ctx.beginPath();
+            const r = cornerRadius * 10; // Scale for preview
+            ctx.moveTo(r, 0);
+            ctx.lineTo(width - r, 0);
+            ctx.arcTo(width, 0, width, r, r); // Top-right
+            ctx.lineTo(width, height - r);
+            ctx.arcTo(width, height, width - r, height, r); // Bottom-right
+            ctx.lineTo(r, height);
+            ctx.arcTo(0, height, 0, height - r, r); // Bottom-left
+            ctx.lineTo(0, r);
+            ctx.arcTo(0, 0, r, 0, r); // Top-left
+            ctx.closePath();
             ctx.fillStyle = "#666";
-            ctx.fillRect(0, 0, width, height);
+            ctx.fill();
 
             // Cut out the holes
             ctx.globalCompositeOperation = "destination-out";
-            const holeRadius = (holeSize / 2) * 10; // Convert diameter to radius, scale for preview
+            const holeRadius = (holeSize / 2) * 10;
             const inset = holeInset * 10;
             const holeCenters = [
                 [inset, inset], // Top-left
@@ -111,21 +123,61 @@ const partsLibrary = {
 
             ctx.globalCompositeOperation = "source-over";
         },
-        toDXF: (width, height, holeSize, holeInset) => {
-            const holeRadius = holeSize / 2; // Real size in inches
+        toDXF: (width, height, holeSize, holeInset, cornerRadius) => {
+            const holeRadius = holeSize / 2;
             const inset = holeInset;
-            let dxf = [
-                "0", "SECTION",
-                "2", "ENTITIES",
-                // Outer rectangle
-                "0", "POLYLINE", "8", "0", "66", "1",
-                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
-                "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0",
-                "0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString(),
-                "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(),
-                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
-                "0", "SEQEND"
-            ];
+            let dxf = ["0", "SECTION", "2", "ENTITIES"];
+
+            // Rectangle with rounded corners (approximated with polyline and arcs)
+            if (cornerRadius > 0) {
+                const steps = 8; // Number of points per arc
+                dxf.push("0", "POLYLINE", "8", "0", "66", "1");
+                // Top side (left to right)
+                dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", "0.0");
+                for (let i = 0; i <= steps; i++) { // Top-right arc
+                    const angle = Math.PI / 2 * (1 - i / steps);
+                    const x = width - cornerRadius + cornerRadius * Math.cos(angle);
+                    const y = cornerRadius - cornerRadius * Math.sin(angle);
+                    dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+                }
+                // Right side (top to bottom)
+                dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (height - cornerRadius).toString());
+                for (let i = 0; i <= steps; i++) { // Bottom-right arc
+                    const angle = Math.PI / 2 * (i / steps);
+                    const x = width - cornerRadius + cornerRadius * Math.cos(angle);
+                    const y = height - cornerRadius + cornerRadius * Math.sin(angle);
+                    dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+                }
+                // Bottom side (right to left)
+                dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", height.toString());
+                for (let i = 0; i <= steps; i++) { // Bottom-left arc
+                    const angle = Math.PI / 2 * (1 + i / steps);
+                    const x = cornerRadius - cornerRadius * Math.cos(angle);
+                    const y = height - cornerRadius + cornerRadius * Math.sin(angle);
+                    dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+                }
+                // Left side (bottom to top)
+                dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", cornerRadius.toString());
+                for (let i = 0; i <= steps; i++) { // Top-left arc
+                    const angle = Math.PI / 2 * (2 + i / steps);
+                    const x = cornerRadius - cornerRadius * Math.cos(angle);
+                    const y = cornerRadius - cornerRadius * Math.sin(angle);
+                    dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+                }
+                dxf.push("0", "SEQEND");
+            } else {
+                // Standard rectangle if no radius
+                dxf.push(
+                    "0", "POLYLINE", "8", "0", "66", "1",
+                    "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
+                    "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0",
+                    "0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString(),
+                    "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(),
+                    "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
+                    "0", "SEQEND"
+                );
+            }
+
             // Add 4 holes as CIRCLE entities
             const holeCenters = [
                 [inset, inset], // Top-left
@@ -141,6 +193,7 @@ const partsLibrary = {
                     "40", holeRadius.toString()
                 );
             });
+
             dxf.push("0", "ENDSEC", "0", "EOF");
             return dxf.join("\n");
         }
@@ -155,7 +208,6 @@ document.querySelectorAll("#parts-list li").forEach(item => {
         document.getElementById("part-type").textContent = partsLibrary[partType].name;
         document.getElementById("width").value = "";
         document.getElementById("height").value = "";
-        // Show hole options only for holedPlate
         document.getElementById("hole-options").style.display = partType === "holedPlate" ? "block" : "none";
     });
 });
@@ -167,9 +219,10 @@ function previewPart() {
     const height = parseFloat(document.getElementById("height").value) * 10;
     const holeSize = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeSize").value) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value) : 0;
+    const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value) : 0;
 
-    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset))) {
-        alert("Please enter width, height, and (for holed plate) hole size and inset.");
+    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset || cornerRadius === undefined))) {
+        alert("Please enter all required fields.");
         return;
     }
 
@@ -182,7 +235,7 @@ function previewPart() {
         ctx.save();
         ctx.translate(200 - width / 2, 200 - height / 2);
         if (partType === "Holed Mounting Plate") {
-            part.draw(ctx, width, height, holeSize, holeInset);
+            part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
         } else {
             part.draw(ctx, width, height);
         }
@@ -197,15 +250,16 @@ function downloadDXF() {
     const height = parseFloat(document.getElementById("height").value);
     const holeSize = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeSize").value) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value) : 0;
+    const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value) : 0;
 
-    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset))) {
-        alert("Please enter width, height, and (for holed plate) hole size and inset.");
+    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset || cornerRadius === undefined))) {
+        alert("Please enter all required fields.");
         return;
     }
 
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
-        const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset) : part.toDXF(width, height);
+        const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) : part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
