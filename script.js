@@ -216,11 +216,10 @@ const partsLibrary = {
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
             // D shape outline
-            const steps = 16; // More steps for smoother arc
+            const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Top-left
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Top-right
-            // Right semicircle (from top to bottom)
             for (let i = 0; i <= steps; i++) {
                 const angle = -Math.PI / 2 + Math.PI * (i / steps);
                 const x = width + (height / 2) * Math.cos(angle);
@@ -235,7 +234,7 @@ const partsLibrary = {
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
-                "10", width.toString(), // Center at right edge
+                "10", width.toString(),
                 "20", (height / 2).toString(),
                 "40", holeRadius.toString()
             );
@@ -261,14 +260,14 @@ document.querySelectorAll("#parts-list li").forEach(item => {
             document.getElementById("cornerRadius").value = "0";
             document.getElementById("holeInset").style.display = "block";
             document.getElementById("cornerRadius").style.display = "block";
-            document.getElementById("holeInset").previousElementSibling.style.display = "block"; // Label
-            document.getElementById("cornerRadius").previousElementSibling.style.display = "block"; // Label
+            document.getElementById("holeInset").previousElementSibling.style.display = "block";
+            document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
         } else if (partType === "dBracket") {
             document.getElementById("holeSize").value = "0.25";
             document.getElementById("holeInset").style.display = "none";
             document.getElementById("cornerRadius").style.display = "none";
-            document.getElementById("holeInset").previousElementSibling.style.display = "none"; // Label
-            document.getElementById("cornerRadius").previousElementSibling.style.display = "none"; // Label
+            document.getElementById("holeInset").previousElementSibling.style.display = "none";
+            document.getElementById("cornerRadius").previousElementSibling.style.display = "none";
         }
     });
 });
@@ -282,8 +281,12 @@ function previewPart() {
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && !holeSize) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
-        alert("Please enter all required fields.");
+    // Debugging logs
+    console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
+
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+        alert("Please enter all required fields. Check console for details.");
+        console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
         return;
     }
 
@@ -295,14 +298,21 @@ function previewPart() {
     if (part) {
         ctx.save();
         ctx.translate(200 - width / 2, 200 - height / 2);
-        if (partType === "Holed Mounting Plate") {
-            part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
-        } else if (partType === "D Bracket") {
-            part.draw(ctx, width, height, holeSize);
-        } else {
-            part.draw(ctx, width, height);
+        try {
+            if (partType === "Holed Mounting Plate") {
+                part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
+            } else if (partType === "D Bracket") {
+                part.draw(ctx, width, height, holeSize);
+            } else {
+                part.draw(ctx, width, height);
+            }
+            console.log("Preview drawn successfully for", partType);
+        } catch (error) {
+            console.error("Error drawing preview:", error);
         }
         ctx.restore();
+    } else {
+        console.log("Part not found:", partType);
     }
 }
 
@@ -315,7 +325,7 @@ function downloadDXF() {
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && !holeSize) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
         alert("Please enter all required fields.");
         return;
     }
