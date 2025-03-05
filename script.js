@@ -85,14 +85,15 @@ const partsLibrary = {
             ].join("\n");
         }
     },
-        holedPlate: {
+            holedPlate: {
         name: "Holed Mounting Plate",
         draw: (ctx, width, height) => {
-            // Draw the rectangle with holes subtracted
-            ctx.beginPath();
-            ctx.rect(0, 0, width, height); // Outer rectangle path
+            // Draw the solid rectangle first
+            ctx.fillStyle = "#666";
+            ctx.fillRect(0, 0, width, height);
 
-            // Define holes as sub-paths (counter-clockwise to subtract)
+            // Cut out the holes
+            ctx.globalCompositeOperation = "destination-out"; // Remove overlapping areas
             const holeRadius = 0.25 * 10; // Scaled for preview
             const inset = 0.5 * 10;
             const holeCenters = [
@@ -103,13 +104,13 @@ const partsLibrary = {
             ];
 
             holeCenters.forEach(([x, y]) => {
-                ctx.moveTo(x + holeRadius, y);
-                ctx.arc(x, y, holeRadius, 0, Math.PI * 2, true); // True = counter-clockwise
+                ctx.beginPath();
+                ctx.arc(x, y, holeRadius, 0, Math.PI * 2);
+                ctx.fill(); // Cuts the hole
             });
 
-            // Fill the shape (rectangle minus holes)
-            ctx.fillStyle = "#666";
-            ctx.fill("evenodd"); // Use even-odd rule to cut holes
+            // Reset composite operation to default
+            ctx.globalCompositeOperation = "source-over";
         },
         toDXF: (width, height) => {
             const holeRadius = 0.25; // Real size in inches
