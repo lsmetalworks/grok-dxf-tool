@@ -1,4 +1,4 @@
-// Parts library with new D-Shaped Bracket
+// Parts library with new D Bracket
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -163,7 +163,7 @@ const partsLibrary = {
                 dxf.push(
                     "0", "POLYLINE", "8", "0", "66", "1",
                     "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
-                    "0", "VERSEX", "8", "0", "10", width.toString(), "20", "0.0",
+                    "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0",
                     "0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString(),
                     "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(),
                     "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
@@ -191,72 +191,54 @@ const partsLibrary = {
         }
     },
     dBracket: {
-        name: "D-Shaped Bracket",
-        draw: (ctx, width, height, dHoleSize, dHoleCount) => {
-            // D shape: flat bottom, semicircle on top
+        name: "D Bracket",
+        draw: (ctx, width, height, holeSize) => {
+            // Draw D shape
             ctx.beginPath();
-            ctx.moveTo(0, 0); // Bottom-left
-            ctx.lineTo(width, 0); // Bottom-right
-            ctx.arc(width / 2, 0, width / 2, 0, Math.PI, true); // Semicircle, clockwise from right to left
+            ctx.moveTo(0, 0); // Top-left
+            ctx.lineTo(width, 0); // Top-right
+            ctx.arc(width, height / 2, height / 2, -Math.PI / 2, Math.PI / 2); // Right semicircle
+            ctx.lineTo(0, height); // Bottom-left
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Holes along the radius side
-            if (dHoleSize && dHoleCount) {
-                ctx.globalCompositeOperation = "destination-out";
-                const holeRadius = (dHoleSize / 2) * 10; // Scale for preview
-                const centerX = width / 2;
-                const centerY = 0;
-                const radius = width / 2;
-                const angleStep = Math.PI / (dHoleCount + 1); // Evenly spaced along semicircle
-
-                for (let i = 1; i <= dHoleCount; i++) {
-                    const angle = angleStep * i;
-                    const x = centerX + radius * Math.cos(angle);
-                    const y = centerY - radius * Math.sin(angle); // Negative because y increases downward
-                    ctx.beginPath();
-                    ctx.arc(x, y, holeRadius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.globalCompositeOperation = "source-over";
-            }
+            // Cut out the hole on the radiused side
+            ctx.globalCompositeOperation = "destination-out";
+            const holeRadius = (holeSize / 2) * 10;
+            ctx.beginPath();
+            ctx.arc(width, height / 2, holeRadius, 0, Math.PI * 2); // Hole centered on arc
+            ctx.fill();
+            ctx.globalCompositeOperation = "source-over";
         },
-        toDXF: (width, height, dHoleSize, dHoleCount) => {
+        toDXF: (width, height, holeSize) => {
+            const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
-            const steps = 16; // Points for semicircle
 
             // D shape outline
+            const steps = 16; // More steps for smoother arc
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
-            const centerX = width / 2;
-            const radius = width / 2;
-            for (let i = 0; i <= steps; i++) { // Semicircle from right to left
-                const angle = Math.PI * (i / steps);
-                const x = centerX + radius * Math.cos(angle);
-                const y = -radius * Math.sin(angle); // Negative y for DXF (upward)
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Top-left
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Top-right
+            // Right semicircle (from top to bottom)
+            for (let i = 0; i <= steps; i++) {
+                const angle = -Math.PI / 2 + Math.PI * (i / steps);
+                const x = width + (height / 2) * Math.cos(angle);
+                const y = height / 2 + (height / 2) * Math.sin(angle);
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Bottom-left
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
             dxf.push("0", "SEQEND");
 
-            // Holes along the radius side
-            if (dHoleSize && dHoleCount) {
-                const holeRadius = dHoleSize / 2;
-                const angleStep = Math.PI / (dHoleCount + 1);
-                for (let i = 1; i <= dHoleCount; i++) {
-                    const angle = angleStep * i;
-                    const x = centerX + radius * Math.cos(angle);
-                    const y = -radius * Math.sin(angle); // Negative y for DXF
-                    dxf.push(
-                        "0", "CIRCLE",
-                        "8", "0",
-                        "10", x.toString(), "20", y.toString(),
-                        "40", holeRadius.toString()
-                    );
-                }
-            }
+            // Single hole on radiused side
+            dxf.push(
+                "0", "CIRCLE",
+                "8", "0",
+                "10", width.toString(), // Center at right edge
+                "20", (height / 2).toString(),
+                "40", holeRadius.toString()
+            );
 
             dxf.push("0", "ENDSEC", "0", "EOF");
             return dxf.join("\n");
@@ -272,15 +254,21 @@ document.querySelectorAll("#parts-list li").forEach(item => {
         document.getElementById("part-type").textContent = partsLibrary[partType].name;
         document.getElementById("width").value = "";
         document.getElementById("height").value = "";
-        document.getElementById("hole-options").style.display = partType === "holedPlate" ? "block" : "none";
-        document.getElementById("dBracket-options").style.display = partType === "dBracket" ? "block" : "none";
+        document.getElementById("hole-options").style.display = (partType === "holedPlate" || partType === "dBracket") ? "block" : "none";
         if (partType === "holedPlate") {
             document.getElementById("holeSize").value = "0.25";
             document.getElementById("holeInset").value = "0.5";
             document.getElementById("cornerRadius").value = "0";
+            document.getElementById("holeInset").style.display = "block";
+            document.getElementById("cornerRadius").style.display = "block";
+            document.getElementById("holeInset").previousElementSibling.style.display = "block"; // Label
+            document.getElementById("cornerRadius").previousElementSibling.style.display = "block"; // Label
         } else if (partType === "dBracket") {
-            document.getElementById("dHoleSize").value = "0.25";
-            document.getElementById("dHoleCount").value = "3";
+            document.getElementById("holeSize").value = "0.25";
+            document.getElementById("holeInset").style.display = "none";
+            document.getElementById("cornerRadius").style.display = "none";
+            document.getElementById("holeInset").previousElementSibling.style.display = "none"; // Label
+            document.getElementById("cornerRadius").previousElementSibling.style.display = "none"; // Label
         }
     });
 });
@@ -290,13 +278,11 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
-    const holeSize = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
-    const dHoleSize = partType === "D-Shaped Bracket" ? parseFloat(document.getElementById("dHoleSize").value || 0.25) : 0;
-    const dHoleCount = partType === "D-Shaped Bracket" ? parseInt(document.getElementById("dHoleCount").value || 3) : 0;
 
-    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset || isNaN(cornerRadius))) || (partType === "D-Shaped Bracket" && (!dHoleSize || !dHoleCount))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && !holeSize) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
         alert("Please enter all required fields.");
         return;
     }
@@ -311,8 +297,8 @@ function previewPart() {
         ctx.translate(200 - width / 2, 200 - height / 2);
         if (partType === "Holed Mounting Plate") {
             part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
-        } else if (partType === "D-Shaped Bracket") {
-            part.draw(ctx, width, height, dHoleSize, dHoleCount);
+        } else if (partType === "D Bracket") {
+            part.draw(ctx, width, height, holeSize);
         } else {
             part.draw(ctx, width, height);
         }
@@ -325,13 +311,11 @@ function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value);
     const height = parseFloat(document.getElementById("height").value);
-    const holeSize = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
-    const dHoleSize = partType === "D-Shaped Bracket" ? parseFloat(document.getElementById("dHoleSize").value || 0.25) : 0;
-    const dHoleCount = partType === "D-Shaped Bracket" ? parseInt(document.getElementById("dHoleCount").value || 3) : 0;
 
-    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset || isNaN(cornerRadius))) || (partType === "D-Shaped Bracket" && (!dHoleSize || !dHoleCount))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && !holeSize) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
         alert("Please enter all required fields.");
         return;
     }
@@ -339,7 +323,7 @@ function downloadDXF() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
-                          partType === "D-Shaped Bracket" ? part.toDXF(width, height, dHoleSize, dHoleCount) :
+                          partType === "D Bracket" ? part.toDXF(width, height, holeSize) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
