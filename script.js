@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket height scaling
+// Parts library with corrected D Bracket height scaling and upward radius
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -201,7 +201,7 @@ const partsLibrary = {
             ctx.beginPath();
             ctx.moveTo(0, height); // Base at bottom
             ctx.lineTo(width, height); // Base to right
-            ctx.arc(centerX, centerY - radius, radius, 0, Math.PI, false); // Upper semicircle (clockwise)
+            ctx.arc(centerX, centerY, radius, Math.PI, 0, false); // Upper semicircle (clockwise)
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -210,7 +210,7 @@ const partsLibrary = {
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(centerX, centerY - radius, holeRadius, 0, Math.PI * 2); // Hole at top center
+            ctx.arc(centerX, centerY - radius / 2, holeRadius, 0, Math.PI * 2); // Hole centered in arc
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
@@ -226,18 +226,18 @@ const partsLibrary = {
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
-            // Upper semicircle (right to left, clockwise)
+            // Upper semicircle (left to right, clockwise)
             for (let i = 0; i <= steps; i++) {
-                const angle = Math.PI * (i / steps); // 0 to π clockwise
+                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = centerX + radius * Math.cos(angle);
-                const y = centerY - radius + radius * Math.sin(angle); // Canvas coords
+                const y = centerY - radius * Math.sin(angle); // Canvas coords (upward)
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
             }
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
             dxf.push("0", "SEQEND");
 
             // Single hole at top center (adjusted for AutoCAD y-axis)
-            const holeY = centerY - radius; // Top center in canvas
+            const holeY = centerY - radius / 2; // Center of arc in canvas
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
