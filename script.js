@@ -19,6 +19,25 @@ const partsLibrary = {
             ctx.fill();
         }
     },
+    rectangle: {
+        name: "Rectangle Plate",
+        draw: (ctx, width, height) => {
+            ctx.fillStyle = "#666";
+            ctx.fillRect(0, 0, width, height);
+        }
+    },
+    gusset: {
+        name: "Triangle Gusset",
+        draw: (ctx, width, height) => {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(width, 0);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fillStyle = "#666";
+            ctx.fill();
+        }
+    },
     holedPlate: {
         name: "Holed Mounting Plate",
         draw: (ctx, width, height, holeSize, holeInset, cornerRadius) => {
