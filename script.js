@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket (radius at top)
+// Parts library with corrected D Bracket DXF
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -217,13 +217,14 @@ const partsLibrary = {
             // D shape outline (radius at top)
             const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
+            // Bottom side (left to right)
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Bottom-left
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString()); // Bottom-right
             // Top semicircle (right to left, counterclockwise)
             for (let i = 0; i <= steps; i++) {
-                const angle = 0 + Math.PI * (i / steps); // 0 to π counterclockwise
+                const angle = Math.PI - Math.PI * (i / steps); // π to 0 counterclockwise
                 const x = width / 2 + (width / 2) * Math.cos(angle);
-                const y = height - (width / 2) * Math.sin(angle); // Center at (width/2, height)
+                const y = height - (width / 2) + (width / 2) * Math.sin(angle); // Center at (width/2, height)
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Close
