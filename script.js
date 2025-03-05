@@ -1,53 +1,8 @@
-// Parts library with DXF generation
+// Parts library with new parts
 const partsLibrary = {
-    bracket: {
-        name: "L-Bracket",
-        draw: (ctx, width, height, thickness) => {
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(width, 0);
-            ctx.lineTo(width, height);
-            ctx.lineTo(width - thickness, height);
-            ctx.lineTo(width - thickness, thickness);
-            ctx.lineTo(0, thickness);
-            ctx.closePath();
-            ctx.fillStyle = "#666";
-            ctx.fill();
-        },
-        toDXF: (width, height, thickness) => {
-            return [
-                "0", "SECTION",
-                "2", "ENTITIES",
-                "0", "POLYLINE",
-                "8", "0", // Layer
-                "66", "1", // Vertices follow
-                "0", "VERTEX",
-                "8", "0",
-                "10", "0.0", "20", "0.0", // (0, 0)
-                "0", "VERTEX",
-                "8", "0",
-                "10", width.toString(), "20", "0.0", // (width, 0)
-                "0", "VERTEX",
-                "8", "0",
-                "10", width.toString(), "20", height.toString(), // (width, height)
-                "0", "VERTEX",
-                "8", "0",
-                "10", (width - thickness).toString(), "20", height.toString(), // (width-thickness, height)
-                "0", "VERTEX",
-                "8", "0",
-                "10", (width - thickness).toString(), "20", thickness.toString(), // (width-thickness, thickness)
-                "0", "VERTEX",
-                "8", "0",
-                "10", "0.0", "20", thickness.toString(), // (0, thickness)
-                "0", "SEQEND",
-                "0", "ENDSEC",
-                "0", "EOF"
-            ].join("\n");
-        }
-    },
     gear: {
         name: "Gear",
-        draw: (ctx, width, height, thickness) => {
+        draw: (ctx, width, height) => {
             const teeth = 8;
             const radius = Math.min(width, height) / 2;
             ctx.beginPath();
@@ -63,7 +18,7 @@ const partsLibrary = {
             ctx.fillStyle = "#666";
             ctx.fill();
         },
-        toDXF: (width, height, thickness) => {
+        toDXF: (width, height) => {
             const teeth = 8;
             const radius = Math.min(width, height) / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES", "0", "POLYLINE", "8", "0", "66", "1"];
@@ -78,38 +33,108 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     },
-        rectangle: {
+    rectangle: {
         name: "Rectangle Plate",
-        draw: (ctx, width, height, thickness) => {
+        draw: (ctx, width, height) => {
             ctx.fillStyle = "#666";
             ctx.fillRect(0, 0, width, height);
         },
-        toDXF: (width, height, thickness) => {
+        toDXF: (width, height) => {
             return [
                 "0", "SECTION",
                 "2", "ENTITIES",
                 "0", "POLYLINE",
-                "8", "0", // Layer
-                "66", "1", // Vertices follow
-                "0", "VERTEX",
                 "8", "0",
-                "10", "0.0", "20", "0.0", // (0, 0)
-                "0", "VERTEX",
-                "8", "0",
-                "10", width.toString(), "20", "0.0", // (width, 0)
-                "0", "VERTEX",
-                "8", "0",
-                "10", width.toString(), "20", height.toString(), // (width, height)
-                "0", "VERTEX",
-                "8", "0",
-                "10", "0.0", "20", height.toString(), // (0, height)
-                "0", "VERTEX",
-                "8", "0",
-                "10", "0.0", "20", "0.0", // Back to (0, 0) to close
+                "66", "1",
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
+                "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0",
+                "0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString(),
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(),
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
                 "0", "SEQEND",
                 "0", "ENDSEC",
                 "0", "EOF"
             ].join("\n");
+        }
+    },
+    gusset: {
+        name: "Triangle Gusset",
+        draw: (ctx, width, height) => {
+            ctx.beginPath();
+            ctx.moveTo(0, 0); // Bottom-left
+            ctx.lineTo(width, 0); // Bottom-right
+            ctx.lineTo(0, height); // Top-left (hypotenuse to origin)
+            ctx.closePath();
+            ctx.fillStyle = "#666";
+            ctx.fill();
+        },
+        toDXF: (width, height) => {
+            return [
+                "0", "SECTION",
+                "2", "ENTITIES",
+                "0", "POLYLINE",
+                "8", "0",
+                "66", "1",
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0", // Bottom-left
+                "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0", // Bottom-right
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(), // Top-left
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0", // Close
+                "0", "SEQEND",
+                "0", "ENDSEC",
+                "0", "EOF"
+            ].join("\n");
+        }
+    },
+    holedPlate: {
+        name: "Holed Mounting Plate",
+        draw: (ctx, width, height) => {
+            // Rectangle outline
+            ctx.fillStyle = "#666";
+            ctx.fillRect(0, 0, width, height);
+
+            // Parametric holes (4 symmetric holes, 0.25in diameter, inset 0.5in from edges)
+            const holeRadius = 0.25 * 10; // Scale for preview
+            const inset = 0.5 * 10;
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.arc(inset, inset, holeRadius, 0, Math.PI * 2); // Top-left
+            ctx.arc(width - inset, inset, holeRadius, 0, Math.PI * 2); // Top-right
+            ctx.arc(width - inset, height - inset, holeRadius, 0, Math.PI * 2); // Bottom-right
+            ctx.arc(inset, height - inset, holeRadius, 0, Math.PI * 2); // Bottom-left
+            ctx.fill();
+        },
+        toDXF: (width, height) => {
+            const holeRadius = 0.25; // Real size in inches
+            const inset = 0.5;
+            let dxf = [
+                "0", "SECTION",
+                "2", "ENTITIES",
+                // Outer rectangle
+                "0", "POLYLINE", "8", "0", "66", "1",
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
+                "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0",
+                "0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString(),
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(),
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
+                "0", "SEQEND"
+            ];
+            // Add 4 holes as CIRCLE entities
+            const holeCenters = [
+                [inset, inset], // Top-left
+                [width - inset, inset], // Top-right
+                [width - inset, height - inset], // Bottom-right
+                [inset, height - inset] // Bottom-left
+            ];
+            holeCenters.forEach(([x, y]) => {
+                dxf.push(
+                    "0", "CIRCLE",
+                    "8", "0",
+                    "10", x.toString(), "20", y.toString(), // Center
+                    "40", holeRadius.toString() // Radius
+                );
+            });
+            dxf.push("0", "ENDSEC", "0", "EOF");
+            return dxf.join("\n");
         }
     }
 };
@@ -122,7 +147,6 @@ document.querySelectorAll("#parts-list li").forEach(item => {
         document.getElementById("part-type").textContent = partsLibrary[partType].name;
         document.getElementById("width").value = "";
         document.getElementById("height").value = "";
-        document.getElementById("thickness").value = "";
     });
 });
 
@@ -131,10 +155,9 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
-    const thickness = parseFloat(document.getElementById("thickness").value) * 10;
 
-    if (!width || !height || !thickness) {
-        alert("Please enter all dimensions.");
+    if (!width || !height) {
+        alert("Please enter width and height.");
         return;
     }
 
@@ -146,7 +169,7 @@ function previewPart() {
     if (part) {
         ctx.save();
         ctx.translate(200 - width / 2, 200 - height / 2);
-        part.draw(ctx, width, height, thickness);
+        part.draw(ctx, width, height);
         ctx.restore();
     }
 }
@@ -156,16 +179,15 @@ function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value);
     const height = parseFloat(document.getElementById("height").value);
-    const thickness = parseFloat(document.getElementById("thickness").value);
 
-    if (!width || !height || !thickness) {
-        alert("Please enter all dimensions and preview the part first.");
+    if (!width || !height) {
+        alert("Please enter width and height and preview the part first.");
         return;
     }
 
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
-        const dxfContent = part.toDXF(width, height, thickness);
+        const dxfContent = part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
