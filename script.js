@@ -85,23 +85,31 @@ const partsLibrary = {
             ].join("\n");
         }
     },
-    holedPlate: {
+        holedPlate: {
         name: "Holed Mounting Plate",
         draw: (ctx, width, height) => {
-            // Rectangle outline
-            ctx.fillStyle = "#666";
-            ctx.fillRect(0, 0, width, height);
-
-            // Parametric holes (4 symmetric holes, 0.25in diameter, inset 0.5in from edges)
-            const holeRadius = 0.25 * 10; // Scale for preview
-            const inset = 0.5 * 10;
-            ctx.fillStyle = "#fff";
+            // Draw the rectangle with holes subtracted
             ctx.beginPath();
-            ctx.arc(inset, inset, holeRadius, 0, Math.PI * 2); // Top-left
-            ctx.arc(width - inset, inset, holeRadius, 0, Math.PI * 2); // Top-right
-            ctx.arc(width - inset, height - inset, holeRadius, 0, Math.PI * 2); // Bottom-right
-            ctx.arc(inset, height - inset, holeRadius, 0, Math.PI * 2); // Bottom-left
-            ctx.fill();
+            ctx.rect(0, 0, width, height); // Outer rectangle path
+
+            // Define holes as sub-paths (counter-clockwise to subtract)
+            const holeRadius = 0.25 * 10; // Scaled for preview
+            const inset = 0.5 * 10;
+            const holeCenters = [
+                [inset, inset], // Top-left
+                [width - inset, inset], // Top-right
+                [width - inset, height - inset], // Bottom-right
+                [inset, height - inset] // Bottom-left
+            ];
+
+            holeCenters.forEach(([x, y]) => {
+                ctx.moveTo(x + holeRadius, y);
+                ctx.arc(x, y, holeRadius, 0, Math.PI * 2, true); // True = counter-clockwise
+            });
+
+            // Fill the shape (rectangle minus holes)
+            ctx.fillStyle = "#666";
+            ctx.fill("evenodd"); // Use even-odd rule to cut holes
         },
         toDXF: (width, height) => {
             const holeRadius = 0.25; // Real size in inches
