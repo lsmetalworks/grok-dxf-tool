@@ -1,4 +1,4 @@
-// Parts library with new parts
+// Parts library with updated holed plate
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -61,9 +61,9 @@ const partsLibrary = {
         name: "Triangle Gusset",
         draw: (ctx, width, height) => {
             ctx.beginPath();
-            ctx.moveTo(0, 0); // Bottom-left
-            ctx.lineTo(width, 0); // Bottom-right
-            ctx.lineTo(0, height); // Top-left (hypotenuse to origin)
+            ctx.moveTo(0, 0);
+            ctx.lineTo(width, 0);
+            ctx.lineTo(0, height);
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -75,27 +75,27 @@ const partsLibrary = {
                 "0", "POLYLINE",
                 "8", "0",
                 "66", "1",
-                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0", // Bottom-left
-                "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0", // Bottom-right
-                "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(), // Top-left
-                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0", // Close
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
+                "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0",
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(),
+                "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
                 "0", "SEQEND",
                 "0", "ENDSEC",
                 "0", "EOF"
             ].join("\n");
         }
     },
-            holedPlate: {
+    holedPlate: {
         name: "Holed Mounting Plate",
-        draw: (ctx, width, height) => {
-            // Draw the solid rectangle first
+        draw: (ctx, width, height, holeSize, holeInset) => {
+            // Draw the solid rectangle
             ctx.fillStyle = "#666";
             ctx.fillRect(0, 0, width, height);
 
             // Cut out the holes
-            ctx.globalCompositeOperation = "destination-out"; // Remove overlapping areas
-            const holeRadius = 0.25 * 10; // Scaled for preview
-            const inset = 0.5 * 10;
+            ctx.globalCompositeOperation = "destination-out";
+            const holeRadius = (holeSize / 2) * 10; // Convert diameter to radius, scale for preview
+            const inset = holeInset * 10;
             const holeCenters = [
                 [inset, inset], // Top-left
                 [width - inset, inset], // Top-right
@@ -106,15 +106,14 @@ const partsLibrary = {
             holeCenters.forEach(([x, y]) => {
                 ctx.beginPath();
                 ctx.arc(x, y, holeRadius, 0, Math.PI * 2);
-                ctx.fill(); // Cuts the hole
+                ctx.fill();
             });
 
-            // Reset composite operation to default
             ctx.globalCompositeOperation = "source-over";
         },
-        toDXF: (width, height) => {
-            const holeRadius = 0.25; // Real size in inches
-            const inset = 0.5;
+        toDXF: (width, height, holeSize, holeInset) => {
+            const holeRadius = holeSize / 2; // Real size in inches
+            const inset = holeInset;
             let dxf = [
                 "0", "SECTION",
                 "2", "ENTITIES",
@@ -138,8 +137,8 @@ const partsLibrary = {
                 dxf.push(
                     "0", "CIRCLE",
                     "8", "0",
-                    "10", x.toString(), "20", y.toString(), // Center
-                    "40", holeRadius.toString() // Radius
+                    "10", x.toString(), "20", y.toString(),
+                    "40", holeRadius.toString()
                 );
             });
             dxf.push("0", "ENDSEC", "0", "EOF");
@@ -156,6 +155,8 @@ document.querySelectorAll("#parts-list li").forEach(item => {
         document.getElementById("part-type").textContent = partsLibrary[partType].name;
         document.getElementById("width").value = "";
         document.getElementById("height").value = "";
+        // Show hole options only for holedPlate
+        document.getElementById("hole-options").style.display = partType === "holedPlate" ? "block" : "none";
     });
 });
 
@@ -164,9 +165,11 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
+    const holeSize = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeSize").value) : 0;
+    const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value) : 0;
 
-    if (!width || !height) {
-        alert("Please enter width and height.");
+    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset))) {
+        alert("Please enter width, height, and (for holed plate) hole size and inset.");
         return;
     }
 
@@ -178,7 +181,11 @@ function previewPart() {
     if (part) {
         ctx.save();
         ctx.translate(200 - width / 2, 200 - height / 2);
-        part.draw(ctx, width, height);
+        if (partType === "Holed Mounting Plate") {
+            part.draw(ctx, width, height, holeSize, holeInset);
+        } else {
+            part.draw(ctx, width, height);
+        }
         ctx.restore();
     }
 }
@@ -188,15 +195,17 @@ function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value);
     const height = parseFloat(document.getElementById("height").value);
+    const holeSize = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeSize").value) : 0;
+    const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value) : 0;
 
-    if (!width || !height) {
-        alert("Please enter width and height and preview the part first.");
+    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset))) {
+        alert("Please enter width, height, and (for holed plate) hole size and inset.");
         return;
     }
 
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
-        const dxfContent = part.toDXF(width, height);
+        const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset) : part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
