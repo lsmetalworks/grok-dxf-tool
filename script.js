@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket preview scaling
+// Parts library with corrected D Bracket preview height
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -193,12 +193,11 @@ const partsLibrary = {
     dBracket: {
         name: "D Bracket",
         draw: (ctx, width, height, holeSize) => {
-            // Draw D shape with radius at top, width = 2 * height for perfect semicircle
-            const adjustedWidth = height * 2; // Width is twice height for a true D
+            // Draw D shape with radius at top, total height = input height
             ctx.beginPath();
             ctx.moveTo(0, height); // Bottom-left
-            ctx.lineTo(adjustedWidth, height); // Bottom-right
-            ctx.arc(adjustedWidth / 2, height, height / 2, 0, Math.PI, true); // Top semicircle (counterclockwise)
+            ctx.lineTo(width, height); // Bottom-right
+            ctx.arc(width / 2, height - width / 2, width / 2, 0, Math.PI, true); // Top semicircle (counterclockwise)
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -207,12 +206,11 @@ const partsLibrary = {
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(adjustedWidth / 2, height / 2, holeRadius, 0, Math.PI * 2); // Hole at top center
+            ctx.arc(width / 2, height - width / 2, holeRadius, 0, Math.PI * 2); // Hole at top center
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
         toDXF: (width, height, holeSize) => {
-            const adjustedWidth = height * 2; // Width is twice height for a true D
             const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
@@ -220,23 +218,23 @@ const partsLibrary = {
             const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Bottom-left
-            dxf.push("0", "VERTEX", "8", "0", "10", adjustedWidth.toString(), "20", height.toString()); // Bottom-right
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString()); // Bottom-right
             // Top semicircle (right to left, counterclockwise)
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
-                const x = adjustedWidth / 2 + (height / 2) * Math.cos(angle);
-                const y = height - (height / 2) * Math.sin(angle); // Center at (adjustedWidth/2, height)
+                const x = width / 2 + (width / 2) * Math.cos(angle);
+                const y = height - (width / 2) * Math.sin(angle); // Center at (width/2, height - width/2)
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Close
             dxf.push("0", "SEQEND");
 
             // Single hole inset from the top center
-            const holeY = height / 2 + holeRadius; // Move hole down by its radius from top
+            const holeY = height - (width / 2) + holeRadius; // Move hole down by its radius from top
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
-                "10", (adjustedWidth / 2).toString(),
+                "10", (width / 2).toString(),
                 "20", holeY.toString(),
                 "40", holeRadius.toString()
             );
@@ -279,7 +277,7 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partintrepreter("Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
@@ -298,7 +296,7 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        ctx.translate(200 - (partType === "D Bracket" ? height : width) / 2, 200 - height / 2); // Adjust centering for D Bracket
+        ctx.translate(200 - width / 2, 200 - height / 2); // Center based on input width and height
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
