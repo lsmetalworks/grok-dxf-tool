@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket DXF
+// Parts library with corrected D Bracket
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -214,7 +214,7 @@ const partsLibrary = {
             const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
-            // D shape outline (radius at top)
+            // D shape outline (radius at top, counterclockwise)
             const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             // Bottom side (left to right)
@@ -224,7 +224,7 @@ const partsLibrary = {
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI - Math.PI * (i / steps); // π to 0 counterclockwise
                 const x = width / 2 + (width / 2) * Math.cos(angle);
-                const y = height - (width / 2) + (width / 2) * Math.sin(angle); // Center at (width/2, height)
+                const y = height - (width / 2) * Math.sin(angle); // Center at (width/2, height)
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString()); // Close
