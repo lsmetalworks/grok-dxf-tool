@@ -18,7 +18,11 @@
                 <li data-part="holedPlate">Holed Mounting Plate</li>
             </ul>
         </div>
-        <div class="main">
+        <div class="preview">
+            <h2>Part Preview</h2>
+            <canvas id="part-preview" width="400" height="400"></canvas>
+        </div>
+        <div class="config">
             <h2>Customize Your Part</h2>
             <div id="config-form" style="display: none;">
                 <label>Part Type: <span id="part-type"></span></label><br>
@@ -37,7 +41,6 @@
                 <button onclick="previewPart()">Preview</button>
                 <button onclick="downloadDXF()">Download DXF</button>
             </div>
-            <canvas id="part-preview" width="400" height="400"></canvas>
         </div>
     </div>
     <script src="script.js"></script>
