@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket scaling and orientation
+// Parts library with corrected D Bracket scaling for width and height
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -193,12 +193,11 @@ const partsLibrary = {
     dBracket: {
         name: "D Bracket",
         draw: (ctx, width, height, holeSize) => {
-            // Draw D shape with radius at top, total height = input height
-            const adjustedWidth = height * 2; // Width = 2 * height for true D shape
+            // Draw D shape with radius at top, respecting input width and height
             ctx.beginPath();
             ctx.moveTo(0, height); // Bottom-left
-            ctx.lineTo(adjustedWidth, height); // Bottom-right
-            ctx.arc(adjustedWidth / 2, height, height / 2, 0, Math.PI, true); // Top semicircle (counterclockwise)
+            ctx.lineTo(width, height); // Bottom-right
+            ctx.arc(width / 2, height - width / 2, width / 2, 0, Math.PI, true); // Top semicircle (counterclockwise)
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -207,12 +206,11 @@ const partsLibrary = {
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(adjustedWidth / 2, height - height / 2, holeRadius, 0, Math.PI * 2); // Hole at top center
+            ctx.arc(width / 2, height - width / 2, holeRadius, 0, Math.PI * 2); // Hole at top center
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
         toDXF: (width, height, holeSize) => {
-            const adjustedWidth = height * 2; // Width = 2 * height for true D shape
             const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
@@ -220,24 +218,24 @@ const partsLibrary = {
             const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
-            dxf.push("0", "VERTEX", "8", "0", "10", adjustedWidth.toString(), "20", "0.0"); // Bottom-right
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
             // Top semicircle (right to left, counterclockwise)
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
-                const x = adjustedWidth / 2 + (height / 2) * Math.cos(angle);
-                const y = (height / 2) * Math.sin(angle); // Center at (adjustedWidth/2, 0), y increases upward
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+                const x = width / 2 + (width / 2) * Math.cos(angle);
+                const y = height - (width / 2) * Math.sin(angle); // Center at (width/2, height - width/2), flipped for AutoCAD
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
             }
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
             dxf.push("0", "SEQEND");
 
             // Single hole at top center (adjusted for AutoCAD y-axis)
-            const holeY = height / 2 - holeRadius; // Inset from top (y = height/2)
+            const holeY = height - (width / 2); // Top center in canvas coords
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
-                "10", (adjustedWidth / 2).toString(),
-                "20", holeY.toString(),
+                "10", (width / 2).toString(),
+                "20", (height - holeY).toString(), // Flip y for AutoCAD
                 "40", holeRadius.toString()
             );
 
@@ -298,9 +296,7 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        // Center based on adjusted width for D Bracket
-        const adjustedWidth = partType === "D Bracket" ? height * 2 : width;
-        ctx.translate(200 - adjustedWidth / 2, 200 - height / 2);
+        ctx.translate(200 - width / 2, 200 - height / 2); // Center based on input width and height
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
