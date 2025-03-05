@@ -190,25 +190,60 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     },
-    dBracket: {
-        name: "D Bracket",
-        draw: (ctx, width, height, holeSize) => {
-            ctx.beginPath();
-            ctx.moveTo(0, height); 
-            ctx.lineTo(width, height); 
-            ctx.lineTo(width, width / 2); // Vertical section on the right
-            ctx.arc(width / 2, width / 2, width / 2, 0, Math.PI, true); // Corrected arc placement
-            ctx.lineTo(0, width / 2); // Vertical section on the left
-            ctx.closePath();
-            ctx.fillStyle = "#666";
-            ctx.fill();
-            
-            // Cut out hole
-            ctx.globalCompositeOperation = "destination-out";
-            ctx.beginPath();
-            ctx.arc(width / 2, width / 2, holeSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalCompositeOperation = "source-over";
+    draw: (ctx, width, height, holeSize) => {
+    const radius = Math.min(width, height) / 2; // Ensure proper scaling
+    const centerX = width / 2;
+    const centerY = height - radius; // Center of the arc
+
+    // Draw D shape with properly scaled top semicircle
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    ctx.lineTo(width, height);
+    ctx.arc(centerX, centerY, radius, 0, Math.PI, true);
+    ctx.closePath();
+    ctx.fillStyle = "#666";
+    ctx.fill();
+
+    // Cut out the hole in the top semicircle
+    ctx.globalCompositeOperation = "destination-out";
+    const holeRadius = holeSize / 2 * 10;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, holeRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+},
+        toDXF: (width, height, holeSize) => {
+            const radius = width / 2;
+            const holeRadius = holeSize / 2;
+            let dxf = ["0", "SECTION", "2", "ENTITIES"];
+
+            // D shape outline (radius at top, oriented for AutoCAD: bottom at y=0)
+            const steps = 16;
+            dxf.push("0", "POLYLINE", "8", "0", "66", "1");
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
+            // Top semicircle (right to left, counterclockwise)
+            for (let i = 0; i <= steps; i++) {
+                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
+                const x = width / 2 + radius * Math.cos(angle);
+                const y = height - radius * Math.sin(angle); // Center at (width/2, height - radius)
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
+            }
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
+            dxf.push("0", "SEQEND");
+
+            // Single hole at top center (adjusted for AutoCAD y-axis)
+            const holeY = height - radius; // Top center in canvas coords
+            dxf.push(
+                "0", "CIRCLE",
+                "8", "0",
+                "10", (width / 2).toString(),
+                "20", (height - holeY).toString(), // Flip y for AutoCAD
+                "40", holeRadius.toString()
+            );
+
+            dxf.push("0", "ENDSEC", "0", "EOF");
+            return dxf.join("\n");
         }
     }
 };
