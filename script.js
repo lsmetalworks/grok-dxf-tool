@@ -25,7 +25,9 @@ const partsLibrary = {
             ctx.beginPath();
             ctx.moveTo(0, height); 
             ctx.lineTo(width, height); 
-            ctx.arc(width / 2, height - width / 2, width / 2, 0, Math.PI, true);
+            ctx.lineTo(width, width / 2); // Vertical section on the right
+            ctx.arc(width / 2, width / 2, width / 2, 0, Math.PI, true); // Corrected arc placement
+            ctx.lineTo(0, width / 2); // Vertical section on the left
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -33,7 +35,7 @@ const partsLibrary = {
             // Cut out hole
             ctx.globalCompositeOperation = "destination-out";
             ctx.beginPath();
-            ctx.arc(width / 2, height - width / 2, holeSize / 2, 0, Math.PI * 2);
+            ctx.arc(width / 2, width / 2, holeSize / 2, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         }
