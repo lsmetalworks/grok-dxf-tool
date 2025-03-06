@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket height, width, and adjustable height
+// Parts library with simplified D Bracket (no hole)
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -192,7 +192,7 @@ const partsLibrary = {
     },
     dBracket: {
         name: "D Bracket",
-        draw: (ctx, width, height, holeSize) => {
+        draw: (ctx, width, height) => {
             const radius = width / 2; // Radius based on width for semicircle
             const centerX = width / 2;
             const arcBaseY = height - radius; // Arc base from bottom
@@ -206,20 +206,11 @@ const partsLibrary = {
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
-
-            // Cut out the hole in the top semicircle
-            ctx.globalCompositeOperation = "destination-out";
-            const holeRadius = (holeSize / 2) * 10;
-            ctx.beginPath();
-            ctx.arc(centerX, arcBaseY - radius / 2, holeRadius, 0, Math.PI * 2); // Hole centered in arc
-            ctx.fill();
-            ctx.globalCompositeOperation = "source-over";
         },
-        toDXF: (width, height, holeSize) => {
+        toDXF: (width, height) => {
             const radius = width / 2;
             const centerX = width / 2;
             const arcBaseY = height - radius; // Base of arc in DXF coords (from bottom)
-            const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
             // D shape outline (oriented for AutoCAD: bottom at y=0)
@@ -238,16 +229,6 @@ const partsLibrary = {
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Explicitly close to bottom-left
             dxf.push("0", "SEQEND");
-
-            // Single hole at top center
-            const holeY = arcBaseY + radius / 2; // Center of arc in DXF coords
-            dxf.push(
-                "0", "CIRCLE",
-                "8", "0",
-                "10", centerX.toString(),
-                "20", holeY.toString(),
-                "40", holeRadius.toString()
-            );
 
             dxf.push("0", "ENDSEC", "0", "EOF");
             return dxf.join("\n");
@@ -287,13 +268,13 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "dBracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "dBracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
         alert("Please enter all required fields. Check console for details.");
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
         return;
@@ -313,7 +294,7 @@ function previewPart() {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
             } else if (partType === "D Bracket") {
-                part.draw(ctx, width, height, holeSize);
+                part.draw(ctx, width, height);
             } else {
                 part.draw(ctx, width, height);
             }
@@ -344,7 +325,7 @@ function downloadDXF() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
-                          partType === "D Bracket" ? part.toDXF(width, height, holeSize) :
+                          partType === "D Bracket" ? part.toDXF(width, height) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
