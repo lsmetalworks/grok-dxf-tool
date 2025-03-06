@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket height, width, and orientation
+// Parts library with corrected D Bracket height, width, and radius orientation
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -201,7 +201,7 @@ const partsLibrary = {
             ctx.beginPath();
             ctx.moveTo(0, height); // Bottom-left at y=height (base)
             ctx.lineTo(0, arcBaseY); // Left vertical side down to arc base
-            ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, true); // Top semicircle (counterclockwise)
+            ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Top semicircle (clockwise, upward)
             ctx.lineTo(width, height); // Right vertical side down to base
             ctx.closePath();
             ctx.fillStyle = "#666";
@@ -218,7 +218,7 @@ const partsLibrary = {
         toDXF: (width, height, holeSize) => {
             const radius = width / 2;
             const centerX = width / 2;
-            const arcBaseY = radius; // Base of arc in canvas coords (from top)
+            const arcBaseY = height - radius; // Base of arc in DXF coords (from bottom)
             const holeRadius = holeSize / 2;
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
@@ -226,25 +226,25 @@ const partsLibrary = {
             const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", (height - radius).toString()); // Left side up to arc base
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", arcBaseY.toString()); // Left side up to arc base
             // Top semicircle (left to right, clockwise)
             for (let i = 0; i <= steps; i++) {
-                const angle = Math.PI + (Math.PI * i) / steps; // π to 0 clockwise
+                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise
                 const x = centerX + radius * Math.cos(angle);
-                const y = arcBaseY - radius * Math.sin(angle); // Canvas coords (upward from arc base)
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", (height - y).toString()); // Flip y for AutoCAD
+                const y = arcBaseY + radius * Math.sin(angle); // DXF coords (upward from arc base)
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString()); // No flip, y matches AutoCAD
             }
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (height - radius).toString()); // Right side down from arc
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", arcBaseY.toString()); // Right side down from arc
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
             dxf.push("0", "SEQEND");
 
-            // Single hole at top center (adjusted for AutoCAD y-axis)
-            const holeY = arcBaseY - radius / 2; // Center of arc in canvas
+            // Single hole at top center
+            const holeY = arcBaseY + radius / 2; // Center of arc in DXF coords
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
                 "10", centerX.toString(),
-                "20", (height - holeY).toString(), // Flip y for AutoCAD
+                "20", holeY.toString(),
                 "40", holeRadius.toString()
             );
 
