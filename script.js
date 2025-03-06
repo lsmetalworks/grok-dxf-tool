@@ -195,14 +195,14 @@ const partsLibrary = {
         draw: (ctx, width, height, holeSize) => {
             const radius = width / 2; // Radius based on width for semicircle
             const centerX = width / 2;
-            const arcBaseY = radius; // Arc base at radius from top
+            const arcBaseY = height - radius; // Arc base at height - radius from base
 
             // Draw D shape with vertical sides and top semicircle
             ctx.beginPath();
-            ctx.moveTo(0, height); // Bottom-left at y=height (base)
-            ctx.lineTo(0, arcBaseY); // Left vertical side down to arc base
+            ctx.moveTo(0, 0); // Bottom-left at y=0 (base)
+            ctx.lineTo(0, arcBaseY); // Left vertical side up to arc base
             ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Top semicircle (clockwise, upward)
-            ctx.lineTo(width, height); // Right vertical side down to base
+            ctx.lineTo(width, 0); // Right vertical side down to base
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
