@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket height, width, and radius orientation
+// Parts library with corrected D Bracket height, width, and preview orientation
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -195,14 +195,14 @@ const partsLibrary = {
         draw: (ctx, width, height, holeSize) => {
             const radius = width / 2; // Radius based on width for semicircle
             const centerX = width / 2;
-            const arcBaseY = radius; // Arc base at radius from top
+            const arcBaseY = height - radius; // Arc base from bottom
 
             // Draw D shape with vertical sides and top semicircle
             ctx.beginPath();
-            ctx.moveTo(0, height); // Bottom-left at y=height (base)
+            ctx.moveTo(0, 0); // Bottom-left at y=0 (top in canvas)
             ctx.lineTo(0, arcBaseY); // Left vertical side down to arc base
-            ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Top semicircle (clockwise, upward)
-            ctx.lineTo(width, height); // Right vertical side down to base
+            ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Top semicircle (clockwise, down)
+            ctx.lineTo(width, 0); // Right vertical side up to base
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -211,7 +211,7 @@ const partsLibrary = {
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(centerX, arcBaseY - radius / 2, holeRadius, 0, Math.PI * 2); // Hole centered in arc
+            ctx.arc(centerX, arcBaseY + radius / 2, holeRadius, 0, Math.PI * 2); // Hole centered in arc
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
