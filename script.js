@@ -1,4 +1,4 @@
-// Parts library with corrected triangle preview orientation
+// Parts library with triangle apex radius
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -192,12 +192,27 @@ const partsLibrary = {
     },
     triangle: {
         name: "Triangle",
-        draw: (ctx, width, height, holeSize) => {
-            // Draw triangle with base at bottom (y=height), apex at top (y=0)
+        draw: (ctx, width, height, holeSize, cornerRadius = 0) => {
+            const r = cornerRadius * 10;
+            const apexX = width / 2;
+            const apexY = 0; // Apex at top in preview coords
+
+            // Calculate tangent points for the arc
+            const sideSlope = height / (width / 2); // Slope of triangle sides
+            const theta = Math.atan(sideSlope); // Angle of side from horizontal
+            const tangentOffsetX = r * Math.sin(theta);
+            const tangentOffsetY = r * Math.cos(theta);
+            const leftTangentX = apexX - tangentOffsetX;
+            const leftTangentY = apexY + tangentOffsetY;
+            const rightTangentX = apexX + tangentOffsetX;
+            const rightTangentY = apexY + tangentOffsetY;
+
+            // Draw triangle with rounded apex
             ctx.beginPath();
             ctx.moveTo(0, height); // Bottom-left
-            ctx.lineTo(width, height); // Bottom-right
-            ctx.lineTo(width / 2, 0); // Apex
+            ctx.lineTo(leftTangentX, leftTangentY); // Up to left tangent point
+            ctx.arc(apexX, apexY + r, r, Math.PI + theta, Math.PI - theta, false); // Arc around apex
+            ctx.lineTo(width, height); // Down to bottom-right
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -207,21 +222,43 @@ const partsLibrary = {
                 ctx.globalCompositeOperation = "destination-out";
                 const holeRadius = (holeSize / 2) * 10;
                 const centroidX = width / 2;
-                const centroidY = height - (height / 3); // Centroid adjusted for flipped y
+                const centroidY = height - (height / 3); // Centroid in flipped preview coords
                 ctx.beginPath();
                 ctx.arc(centroidX, centroidY, holeRadius, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.globalCompositeOperation = "source-over";
             }
         },
-        toDXF: (width, height, holeSize) => {
+        toDXF: (width, height, holeSize, cornerRadius = 0) => {
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
+            const r = cornerRadius;
+            const apexX = width / 2;
+            const apexY = height; // Apex at top in DXF coords
 
-            // Triangle outline (oriented for AutoCAD: bottom at y=0)
+            // Calculate tangent points for the arc
+            const sideSlope = height / (width / 2);
+            const theta = Math.atan(sideSlope);
+            const tangentOffsetX = r * Math.sin(theta);
+            const tangentOffsetY = r * Math.cos(theta);
+            const leftTangentX = apexX - tangentOffsetX;
+            const leftTangentY = apexY - tangentOffsetY;
+            const rightTangentX = apexX + tangentOffsetX;
+            const rightTangentY = apexY - tangentOffsetY;
+
+            // Triangle outline with rounded apex
+            const steps = 8;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left
+            dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString()); // Left tangent
+            // Arc from left to right tangent (counterclockwise)
+            for (let i = 0; i <= steps; i++) {
+                const angle = (Math.PI + theta) + (2 * theta * i / steps); // π + θ to π - θ
+                const x = apexX + r * Math.cos(angle);
+                const y = apexY - r * Math.sin(angle);
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+            }
+            dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString()); // Right tangent
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
-            dxf.push("0", "VERTEX", "8", "0", "10", (width / 2).toString(), "20", height.toString()); // Apex
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close
             dxf.push("0", "SEQEND");
 
@@ -229,7 +266,7 @@ const partsLibrary = {
             if (holeSize > 0) {
                 const holeRadius = holeSize / 2;
                 const centroidX = width / 2;
-                const centroidY = height / 3; // Centroid in AutoCAD coords (y=0 at bottom)
+                const centroidY = height / 3; // Centroid in DXF coords (y=0 at bottom)
                 dxf.push(
                     "0", "CIRCLE",
                     "8", "0",
@@ -264,10 +301,11 @@ document.querySelectorAll("#parts-list li").forEach(item => {
             document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
         } else if (partType === "triangle") {
             document.getElementById("holeSize").value = "0.25";
+            document.getElementById("cornerRadius").value = "0"; // Default radius
             document.getElementById("holeInset").style.display = "none";
-            document.getElementById("cornerRadius").style.display = "none";
+            document.getElementById("cornerRadius").style.display = "block"; // Show radius input
             document.getElementById("holeInset").previousElementSibling.style.display = "none";
-            document.getElementById("cornerRadius").previousElementSibling.style.display = "none";
+            document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
         }
     });
 });
@@ -279,11 +317,13 @@ function previewPart() {
     const height = parseFloat(document.getElementById("height").value) * 10;
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Triangle") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
-    const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
+    const cornerRadius = (partType === "Holed Mounting Plate" || partType === "Triangle") ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Triangle") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Triangle") && (!holeSize || isNaN(holeSize))) || 
+        (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius))) || 
+        (partType === "Triangle" && (isNaN(cornerRadius)))) {
         alert("Please enter all required fields. Check console for details.");
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
         return;
@@ -304,7 +344,7 @@ function previewPart() {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
             } else if (partType === "Triangle") {
-                part.draw(ctx, width, height, holeSize);
+                part.draw(ctx, width, height, holeSize, cornerRadius);
             } else {
                 part.draw(ctx, width, height);
             }
@@ -325,9 +365,11 @@ function downloadDXF() {
     const height = parseFloat(document.getElementById("height").value);
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Triangle") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
-    const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
+    const cornerRadius = (partType === "Holed Mounting Plate" || partType === "Triangle") ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Triangle") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Triangle") && (!holeSize || isNaN(holeSize))) || 
+        (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius))) || 
+        (partType === "Triangle" && (isNaN(cornerRadius)))) {
         alert("Please enter all required fields.");
         return;
     }
@@ -335,7 +377,7 @@ function downloadDXF() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
-                          partType === "Triangle" ? part.toDXF(width, height, holeSize) :
+                          partType === "Triangle" ? part.toDXF(width, height, holeSize, cornerRadius) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
