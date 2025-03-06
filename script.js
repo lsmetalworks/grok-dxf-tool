@@ -294,7 +294,7 @@ function previewPart() {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
             } else if (partType === "D Bracket") {
-                part.draw(ctx, width, height); // Updated to match draw function without holeSize
+                part.draw(ctx, width, height);
             } else {
                 part.draw(ctx, width, height);
             }
@@ -325,7 +325,7 @@ function downloadDXF() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
-                          partType === "D Bracket" ? part.toDXF(width, height) : // Updated to match toDXF without holeSize
+                          partType === "D Bracket" ? part.toDXF(width, height) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
