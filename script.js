@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket height, width, and preview radius orientation
+// Parts library with corrected D Bracket height, width, and adjustable height
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -195,7 +195,7 @@ const partsLibrary = {
         draw: (ctx, width, height, holeSize) => {
             const radius = width / 2; // Radius based on width for semicircle
             const centerX = width / 2;
-            const arcBaseY = height - radius; // Arc base from bottom, adjusted for upward curve
+            const arcBaseY = height - radius; // Arc base from bottom
 
             // Draw D shape with vertical sides and top semicircle
             ctx.beginPath();
