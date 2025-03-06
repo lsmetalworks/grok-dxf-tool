@@ -268,13 +268,13 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "dBracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "dBracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
         alert("Please enter all required fields. Check console for details.");
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
         return;
@@ -294,7 +294,7 @@ function previewPart() {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
             } else if (partType === "D Bracket") {
-                part.draw(ctx, width, height);
+                part.draw(ctx, width, height); // Updated to match draw function without holeSize
             } else {
                 part.draw(ctx, width, height);
             }
@@ -325,7 +325,7 @@ function downloadDXF() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
-                          partType === "D Bracket" ? part.toDXF(width, height) :
+                          partType === "D Bracket" ? part.toDXF(width, height) : // Updated to match toDXF without holeSize
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
