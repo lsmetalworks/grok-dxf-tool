@@ -217,4 +217,76 @@ document.querySelectorAll("#parts-list li").forEach(item => {
                 document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
             }
         } else {
-            console.log(
+            console.log(`Part type "${partType}" not found in library.`);
+        }
+    });
+});
+
+// Preview the part on canvas
+function previewPart() {
+    const partType = document.getElementById("part-type").textContent;
+    const width = parseFloat(document.getElementById("width").value) * 10;
+    const height = parseFloat(document.getElementById("height").value) * 10;
+    const holeSize = (partType === "Holed Mounting Plate") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
+    const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
+
+    console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
+
+    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset || !cornerRadius || isNaN(holeSize) || isNaN(holeInset) || isNaN(cornerRadius)))) {
+        alert("Please enter all required fields. Check console for details.");
+        console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
+        return;
+    }
+
+    const canvas = document.getElementById("part-preview");
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const part = Object.values(partsLibrary).find(p => p.name === partType);
+    if (part) {
+        ctx.save();
+        ctx.translate(200 - width / 2, 200 - height / 2);
+        try {
+            if (partType === "Holed Mounting Plate") {
+                part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
+            } else {
+                part.draw(ctx, width, height);
+            }
+            console.log("Preview drawn successfully for", partType);
+        } catch (error) {
+            console.error("Error drawing preview:", error);
+        }
+        ctx.restore();
+    } else {
+        console.log("Part not found:", partType);
+    }
+}
+
+// Download DXF file
+function downloadDXF() {
+    const partType = document.getElementById("part-type").textContent;
+    const width = parseFloat(document.getElementById("width").value);
+    const height = parseFloat(document.getElementById("height").value);
+    const holeSize = (partType === "Holed Mounting Plate") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
+    const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
+
+    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset || !cornerRadius || isNaN(holeSize) || isNaN(holeInset) || isNaN(cornerRadius)))) {
+        alert("Please enter all required fields.");
+        return;
+    }
+
+    const part = Object.values(partsLibrary).find(p => p.name === partType);
+    if (part) {
+        const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
+                          part.toDXF(width, height);
+        const blob = new Blob([dxfContent], { type: "application/dxf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${partType.toLowerCase()}.dxf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
