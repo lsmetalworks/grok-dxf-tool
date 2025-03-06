@@ -190,49 +190,31 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     },
-    dBracket: { // Replacing D Bracket with Rounded End Plate
-        name: "Rounded End Plate",
-        draw: (ctx, width, height) => {
-            const radius = width / 2; // Radius driven by width
-            const centerX = width / 2;
-            const arcBaseY = height - radius; // Arc base from bottom
+    dBracket: {
+    name: "D Bracket",
+    draw: (ctx, width, height, holeSize) => {
+        const radius = width / 2;  // Make sure radius is based on width
+        const centerX = width / 2;
+        const baseY = height; // Base at the bottom of the bracket
 
-            ctx.beginPath();
-            ctx.moveTo(0, height); // Bottom-left
-            ctx.lineTo(0, arcBaseY); // Left side up to arc base
-            ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Semicircle, clockwise (up in final view)
-            ctx.lineTo(width, height); // Right side down to base
-            ctx.closePath();
-            ctx.fillStyle = "#666";
-            ctx.fill();
-        },
-        toDXF: (width, height) => {
-            const radius = width / 2;
-            const centerX = width / 2;
-            const arcBaseY = height - radius; // Arc base from bottom
-            let dxf = ["0", "SECTION", "2", "ENTITIES"];
+        ctx.beginPath();
+        ctx.moveTo(0, baseY); // Bottom left
+        ctx.lineTo(0, baseY - radius); // Left side up to the start of the arc
+        ctx.arc(centerX, baseY - radius, radius, Math.PI, 0, false); // Top semicircle
+        ctx.lineTo(width, baseY); // Right side down to the bottom
+        ctx.closePath();
+        ctx.fillStyle = "#666";
+        ctx.fill();
 
-            // Polyline for the shape
-            const steps = 16;
-            dxf.push("0", "POLYLINE", "8", "0", "66", "1");
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", arcBaseY.toString()); // Left side up
-            // Semicircle from left to right
-            for (let i = 0; i <= steps; i++) {
-                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise (up in DXF)
-                const x = centerX + radius * Math.cos(angle);
-                const y = arcBaseY + radius * Math.sin(angle);
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
-            }
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", arcBaseY.toString()); // Right side down
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close to bottom-left
-            dxf.push("0", "SEQEND");
-
-            dxf.push("0", "ENDSEC", "0", "EOF");
-            return dxf.join("\n");
-        }
-    }
+        // Cut out the hole in the top semicircle
+        ctx.globalCompositeOperation = "destination-out";
+        const holeRadius = (holeSize / 2) * 10;
+        ctx.beginPath();
+        ctx.arc(centerX, baseY - radius, holeRadius, 0, Math.PI * 2); // Adjusted Y position
+        ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+    },
+}
 };
 
 // Event listeners for part selection
