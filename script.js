@@ -1,4 +1,4 @@
-// Parts library with corrected D Bracket height, width, and preview orientation for positive height
+// Parts library with corrected D Bracket height, width, and preview orientation
 const partsLibrary = {
     gear: {
         name: "Gear",
