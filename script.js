@@ -1,4 +1,4 @@
-// Parts library with flipped preview, D Bracket removed
+// Parts library with corrected triangle preview orientation
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -10,8 +10,8 @@ const partsLibrary = {
                 const angle = (i * Math.PI) / teeth;
                 const r = i % 2 === 0 ? radius : radius * 0.8;
                 ctx.lineTo(
-                    200 + r * Math.cos(angle),
-                    200 + r * Math.sin(angle)
+                    width / 2 + r * Math.cos(angle), // Center at (width/2, height/2)
+                    height / 2 + r * Math.sin(angle)
                 );
             }
             ctx.closePath();
@@ -193,11 +193,11 @@ const partsLibrary = {
     triangle: {
         name: "Triangle",
         draw: (ctx, width, height, holeSize) => {
-            // Draw triangle with base at bottom, apex at top
+            // Draw triangle with base at bottom (y=height), apex at top (y=0)
             ctx.beginPath();
-            ctx.moveTo(0, 0); // Bottom-left
-            ctx.lineTo(width, 0); // Bottom-right
-            ctx.lineTo(width / 2, height); // Apex
+            ctx.moveTo(0, height); // Bottom-left
+            ctx.lineTo(width, height); // Bottom-right
+            ctx.lineTo(width / 2, 0); // Apex
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -207,7 +207,7 @@ const partsLibrary = {
                 ctx.globalCompositeOperation = "destination-out";
                 const holeRadius = (holeSize / 2) * 10;
                 const centroidX = width / 2;
-                const centroidY = height / 3; // Centroid of an isosceles triangle
+                const centroidY = height - (height / 3); // Centroid adjusted for flipped y
                 ctx.beginPath();
                 ctx.arc(centroidX, centroidY, holeRadius, 0, Math.PI * 2);
                 ctx.fill();
@@ -229,7 +229,7 @@ const partsLibrary = {
             if (holeSize > 0) {
                 const holeRadius = holeSize / 2;
                 const centroidX = width / 2;
-                const centroidY = height / 3;
+                const centroidY = height / 3; // Centroid in AutoCAD coords (y=0 at bottom)
                 dxf.push(
                     "0", "CIRCLE",
                     "8", "0",
