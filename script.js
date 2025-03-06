@@ -1,4 +1,4 @@
-// Parts library with corrected triangle apex radius
+// Parts library with corrected triangle apex radius tangency
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -155,7 +155,7 @@ const partsLibrary = {
                     const angle = Math.PI + (Math.PI / 2) * (i / steps);
                     const x = cornerRadius + cornerRadius * Math.cos(angle);
                     const y = cornerRadius + cornerRadius * Math.sin(angle);
-                    dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", yamage.toString());
+                    dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
                 }
                 dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", "0.0");
                 dxf.push("0", "SEQEND");
@@ -196,24 +196,32 @@ const partsLibrary = {
             const r = cornerRadius * 10;
             const apexX = width / 2;
 
-            // Calculate arc center and tangent points
-            const slope = height / (width / 2); // Slope of triangle sides
-            const theta = Math.atan(slope); // Angle from horizontal
-            const cy = r / Math.sin(theta); // Distance from apex to center along y-axis
+            // Calculate arc center
+            const m = height / (width / 2); // Slope of left side
+            const a = -m; // Line: -m * x + y - height = 0
+            const b = 1;
+            const c = -height;
             const centerX = apexX;
-            const centerY = cy; // Center below apex in preview coords (y=0 at top)
-            const tangentOffsetX = r * Math.cos(theta);
-            const tangentOffsetY = r * Math.sin(theta);
-            const leftTangentX = apexX - tangentOffsetX;
-            const leftTangentY = centerY - tangentOffsetY;
-            const rightTangentX = apexX + tangentOffsetX;
-            const rightTangentY = centerY - tangentOffsetY;
+            const cy = r * Math.sqrt(m * m + 1) + (m * apexX - height) / Math.sqrt(m * m + 1); // Perpendicular distance = r
+            const centerY = cy;
+
+            // Tangent points (intersection of circle with lines)
+            const dx = r / Math.sqrt(m * m + 1);
+            const dy = m * dx;
+            const leftTangentX = apexX - dx;
+            const leftTangentY = cy - dy;
+            const rightTangentX = apexX + dx;
+            const rightTangentY = cy - dy;
+
+            // Arc angles
+            const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
+            const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
 
             // Draw triangle with rounded apex
             ctx.beginPath();
             ctx.moveTo(0, height); // Bottom-left
             ctx.lineTo(leftTangentX, leftTangentY); // Up to left tangent point
-            ctx.arc(centerX, centerY, r, Math.PI + theta, Math.PI - theta, false); // Arc around apex (clockwise)
+            ctx.arc(centerX, centerY, r, startAngle, endAngle, false); // Arc around apex (clockwise)
             ctx.lineTo(width, height); // Down to bottom-right
             ctx.closePath();
             ctx.fillStyle = "#666";
@@ -236,18 +244,26 @@ const partsLibrary = {
             const r = cornerRadius;
             const apexX = width / 2;
 
-            // Calculate arc center and tangent points
-            const slope = height / (width / 2);
-            const theta = Math.atan(slope);
-            const cy = r / Math.sin(theta); // Distance from apex to center
+            // Calculate arc center
+            const m = height / (width / 2); // Slope of left side
+            const a = -m; // Line: -m * x + y - height = 0
+            const b = 1;
+            const c = -height;
             const centerX = apexX;
-            const centerY = height - cy; // Center below apex in DXF coords (y=0 at bottom)
-            const tangentOffsetX = r * Math.cos(theta);
-            const tangentOffsetY = r * Math.sin(theta);
-            const leftTangentX = apexX - tangentOffsetX;
-            const leftTangentY = centerY + tangentOffsetY;
-            const rightTangentX = apexX + tangentOffsetX;
-            const rightTangentY = centerY + tangentOffsetY;
+            const cy = height - (r * Math.sqrt(m * m + 1) + (m * apexX - height) / Math.sqrt(m * m + 1)); // Adjusted for DXF y-up
+            const centerY = cy;
+
+            // Tangent points
+            const dx = r / Math.sqrt(m * m + 1);
+            const dy = m * dx;
+            const leftTangentX = apexX - dx;
+            const leftTangentY = cy + dy;
+            const rightTangentX = apexX + dx;
+            const rightTangentY = cy + dy;
+
+            // Arc angles
+            const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
+            const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
 
             // Triangle outline with rounded apex
             const steps = 8;
@@ -256,7 +272,7 @@ const partsLibrary = {
             dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString()); // Left tangent
             // Arc from left to right tangent (clockwise)
             for (let i = 0; i <= steps; i++) {
-                const angle = (Math.PI - theta) - (2 * theta * i / steps); // π - θ to π + θ clockwise
+                const angle = startAngle + (endAngle - startAngle) * i / steps; // Clockwise in DXF
                 const x = centerX + r * Math.cos(angle);
                 const y = centerY + r * Math.sin(angle);
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
