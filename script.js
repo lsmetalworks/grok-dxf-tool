@@ -1,4 +1,4 @@
-// Parts library with Rounded End Plate replacing D Bracket
+// Parts library without D Bracket
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -189,32 +189,7 @@ const partsLibrary = {
             dxf.push("0", "ENDSEC", "0", "EOF");
             return dxf.join("\n");
         }
-    },
-    dBracket: {
-    name: "D Bracket",
-    draw: (ctx, width, height, holeSize) => {
-        const radius = width / 2;  // Make sure radius is based on width
-        const centerX = width / 2;
-        const baseY = height; // Base at the bottom of the bracket
-
-        ctx.beginPath();
-        ctx.moveTo(0, baseY); // Bottom left
-        ctx.lineTo(0, baseY - radius); // Left side up to the start of the arc
-        ctx.arc(centerX, baseY - radius, radius, Math.PI, 0, false); // Top semicircle
-        ctx.lineTo(width, baseY); // Right side down to the bottom
-        ctx.closePath();
-        ctx.fillStyle = "#666";
-        ctx.fill();
-
-        // Cut out the hole in the top semicircle
-        ctx.globalCompositeOperation = "destination-out";
-        const holeRadius = (holeSize / 2) * 10;
-        ctx.beginPath();
-        ctx.arc(centerX, baseY - radius, holeRadius, 0, Math.PI * 2); // Adjusted Y position
-        ctx.fill();
-        ctx.globalCompositeOperation = "source-over";
-    },
-}
+    }
 };
 
 // Event listeners for part selection
@@ -225,7 +200,7 @@ document.querySelectorAll("#parts-list li").forEach(item => {
         document.getElementById("part-type").textContent = partsLibrary[partType].name;
         document.getElementById("width").value = "";
         document.getElementById("height").value = "";
-        document.getElementById("hole-options").style.display = (partType === "holedPlate" || partType === "dBracket") ? "block" : "none";
+        document.getElementById("hole-options").style.display = (partType === "holedPlate") ? "block" : "none";
         if (partType === "holedPlate") {
             document.getElementById("holeSize").value = "0.25";
             document.getElementById("holeInset").value = "0.5";
@@ -234,12 +209,6 @@ document.querySelectorAll("#parts-list li").forEach(item => {
             document.getElementById("cornerRadius").style.display = "block";
             document.getElementById("holeInset").previousElementSibling.style.display = "block";
             document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
-        } else if (partType === "dBracket") {
-            document.getElementById("holeSize").value = "0.25";
-            document.getElementById("holeInset").style.display = "none";
-            document.getElementById("cornerRadius").style.display = "none";
-            document.getElementById("holeInset").previousElementSibling.style.display = "none";
-            document.getElementById("cornerRadius").previousElementSibling.style.display = "none";
         }
     });
 });
@@ -249,20 +218,15 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "Rounded End Plate") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partType === "Holed Mounting Plate") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Rounded End Plate") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset || !cornerRadius || isNaN(holeSize) || isNaN(holeInset) || isNaN(cornerRadius)))) {
         alert("Please enter all required fields. Check console for details.");
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
-        return;
-    }
-
-    if (partType === "Rounded End Plate" && height < width / 2) {
-        alert("Height must be at least half the width for the semicircle.");
         return;
     }
 
@@ -273,14 +237,10 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        // Center based on width and total shape height
-        const totalHeight = partType === "Rounded End Plate" ? height : height;
-        ctx.translate(200 - width / 2, 200 - totalHeight / 2);
+        ctx.translate(200 - width / 2, 200 - height / 2);
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
-            } else if (partType === "Rounded End Plate") {
-                part.draw(ctx, width, height);
             } else {
                 part.draw(ctx, width, height);
             }
@@ -299,24 +259,18 @@ function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value);
     const height = parseFloat(document.getElementById("height").value);
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "Rounded End Plate") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partType === "Holed Mounting Plate") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Rounded End Plate") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || (partType === "Holed Mounting Plate" && (!holeSize || !holeInset || !cornerRadius || isNaN(holeSize) || isNaN(holeInset) || isNaN(cornerRadius)))) {
         alert("Please enter all required fields.");
-        return;
-    }
-
-    if (partType === "Rounded End Plate" && height < width / 2) {
-        alert("Height must be at least half the width for the semicircle.");
         return;
     }
 
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
-                          partType === "Rounded End Plate" ? part.toDXF(width, height) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
