@@ -229,14 +229,14 @@ const partsLibrary = {
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", arcBaseY.toString()); // Left side up to arc base
             // Top semicircle (left to right, clockwise)
             for (let i = 0; i <= steps; i++) {
-                const angle = Math.PI + (Math.PI * i) / steps; // 0 to π clockwise
+                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise (upward in DXF)
                 const x = centerX + radius * Math.cos(angle);
                 const y = arcBaseY + radius * Math.sin(angle); // DXF coords (upward from arc base)
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString()); // No flip, y matches AutoCAD
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", arcBaseY.toString()); // Right side down from arc
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Explicitly close to start
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Explicitly close to bottom-left
             dxf.push("0", "SEQEND");
 
             // Single hole at top center
