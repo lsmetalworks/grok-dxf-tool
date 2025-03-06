@@ -1,4 +1,4 @@
-// Parts library with simplified D Bracket (no hole)
+// Parts library with Rounded End Plate replacing D Bracket
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -190,19 +190,18 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     },
-    dBracket: {
-        name: "D Bracket",
+    dBracket: { // Replacing D Bracket with Rounded End Plate
+        name: "Rounded End Plate",
         draw: (ctx, width, height) => {
-            const radius = width / 2; // Radius based on width for semicircle
+            const radius = width / 2; // Radius driven by width
             const centerX = width / 2;
             const arcBaseY = height - radius; // Arc base from bottom
 
-            // Draw D shape with vertical sides and top semicircle
             ctx.beginPath();
-            ctx.moveTo(0, height); // Bottom-left at y=height (bottom in canvas)
-            ctx.lineTo(0, arcBaseY); // Left vertical side up to arc base
-            ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Top semicircle (clockwise, up in final view)
-            ctx.lineTo(width, height); // Right vertical side down to base
+            ctx.moveTo(0, height); // Bottom-left
+            ctx.lineTo(0, arcBaseY); // Left side up to arc base
+            ctx.arc(centerX, arcBaseY, radius, Math.PI, 0, false); // Semicircle, clockwise (up in final view)
+            ctx.lineTo(width, height); // Right side down to base
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -210,24 +209,24 @@ const partsLibrary = {
         toDXF: (width, height) => {
             const radius = width / 2;
             const centerX = width / 2;
-            const arcBaseY = height - radius; // Base of arc in DXF coords (from bottom)
+            const arcBaseY = height - radius; // Arc base from bottom
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
 
-            // D shape outline (oriented for AutoCAD: bottom at y=0)
+            // Polyline for the shape
             const steps = 16;
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left (AutoCAD y=0)
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", arcBaseY.toString()); // Left side up to arc base
-            // Top semicircle (left to right, clockwise)
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", arcBaseY.toString()); // Left side up
+            // Semicircle from left to right
             for (let i = 0; i <= steps; i++) {
-                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise (upward in DXF)
+                const angle = Math.PI - (Math.PI * i) / steps; // π to 0 counterclockwise (up in DXF)
                 const x = centerX + radius * Math.cos(angle);
-                const y = arcBaseY + radius * Math.sin(angle); // DXF coords (upward from arc base)
+                const y = arcBaseY + radius * Math.sin(angle);
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", arcBaseY.toString()); // Right side down from arc
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", arcBaseY.toString()); // Right side down
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Explicitly close to bottom-left
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Close to bottom-left
             dxf.push("0", "SEQEND");
 
             dxf.push("0", "ENDSEC", "0", "EOF");
@@ -268,15 +267,20 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "Rounded End Plate") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Rounded End Plate") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
         alert("Please enter all required fields. Check console for details.");
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
+        return;
+    }
+
+    if (partType === "Rounded End Plate" && height < width / 2) {
+        alert("Height must be at least half the width for the semicircle.");
         return;
     }
 
@@ -288,12 +292,12 @@ function previewPart() {
     if (part) {
         ctx.save();
         // Center based on width and total shape height
-        const totalHeight = partType === "D Bracket" ? height : height;
+        const totalHeight = partType === "Rounded End Plate" ? height : height;
         ctx.translate(200 - width / 2, 200 - totalHeight / 2);
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
-            } else if (partType === "D Bracket") {
+            } else if (partType === "Rounded End Plate") {
                 part.draw(ctx, width, height);
             } else {
                 part.draw(ctx, width, height);
@@ -313,19 +317,24 @@ function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value);
     const height = parseFloat(document.getElementById("height").value);
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "D Bracket") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "Rounded End Plate") ? parseFloat(document.getElementById("holeSize").value || 0.25) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "D Bracket") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Rounded End Plate") && (!holeSize || isNaN(holeSize))) || (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius)))) {
         alert("Please enter all required fields.");
+        return;
+    }
+
+    if (partType === "Rounded End Plate" && height < width / 2) {
+        alert("Height must be at least half the width for the semicircle.");
         return;
     }
 
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
-                          partType === "D Bracket" ? part.toDXF(width, height) :
+                          partType === "Rounded End Plate" ? part.toDXF(width, height) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
