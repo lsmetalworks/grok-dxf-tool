@@ -193,7 +193,7 @@ const partsLibrary = {
     triangle: {
         name: "Triangle",
         draw: (ctx, width, height, holeSize, cornerRadius = 0) => {
-            const r = cornerRadius * 10; // Scale radius to canvas units
+            const r = cornerRadius * 10; // Scale radius to canvas units (consistent with width/height)
             const apexX = width / 2;
             const apexY = 0;
 
@@ -205,30 +205,32 @@ const partsLibrary = {
                 const centerX = apexX;
                 const centerY = r;
 
-                // Tangent points: intersect circle with sides
-                const m = height / (width / 2); // Slope of left side
+                // Left side: y = height - m * x, where m = height / (width / 2)
+                const m = height / (width / 2);
+                // Circle: (x - centerX)^2 + (y - centerY)^2 = r^2
+                // Substitute y = height - m * x into circle equation
                 const a = 1 + m * m;
-                const b = -2 * centerX - 2 * m * (centerY - height);
-                const c = centerX * centerX + (centerY - height) * (centerY - height) - r * r;
+                const b = -2 * centerX + 2 * m * (height - centerY);
+                const c = centerX * centerX + (height - centerY) * (height - centerY) - r * r;
                 const discriminant = b * b - 4 * a * c;
+
+                console.log("Triangle calc:", { r, centerX, centerY, m, a, b, c, discriminant });
 
                 if (discriminant >= 0) {
                     const sqrtDisc = Math.sqrt(discriminant);
-                    // Left tangent: choose the point closer to base (larger x)
-                    const x1 = (-b + sqrtDisc) / (2 * a);
-                    const x2 = (-b - sqrtDisc) / (2 * a);
+                    const x1 = (-b + sqrtDisc) / (2 * a); // Closer to base (larger x)
+                    const x2 = (-b - sqrtDisc) / (2 * a); // Closer to apex (smaller x)
                     const leftTangentX = x1 > x2 ? x1 : x2;
                     const leftTangentY = height - m * leftTangentX;
 
-                    // Right tangent: symmetry
+                    // Right tangent via symmetry
                     const rightTangentX = width - leftTangentX;
                     const rightTangentY = leftTangentY;
 
-                    // Arc angles
                     const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
                     const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
 
-                    console.log("Triangle radius:", { r, centerX, centerY, leftTangentX, leftTangentY, rightTangentX, rightTangentY, startAngle, endAngle });
+                    console.log("Tangent points:", { leftTangentX, leftTangentY, rightTangentX, rightTangentY, startAngle, endAngle });
 
                     ctx.lineTo(leftTangentX, leftTangentY);
                     ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
@@ -261,7 +263,7 @@ const partsLibrary = {
         },
         toDXF: (width, height, holeSize, cornerRadius = 0) => {
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
-            const r = cornerRadius;
+            const r = cornerRadius * 10; // Consistent scaling with draw
             const apexX = width / 2;
             const apexY = height;
 
@@ -274,8 +276,8 @@ const partsLibrary = {
 
                 const m = height / (width / 2);
                 const a = 1 + m * m;
-                const b = -2 * centerX - 2 * m * (centerY - height);
-                const c = centerX * centerX + (centerY - height) * (centerY - height) - r * r;
+                const b = -2 * centerX + 2 * m * (height - centerY);
+                const c = centerX * centerX + (height - centerY) * (height - centerY) - r * r;
                 const discriminant = b * b - 4 * a * c;
 
                 if (discriminant >= 0) {
@@ -301,6 +303,7 @@ const partsLibrary = {
                     }
                     dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString());
                 } else {
+                    console.log("DXF: Invalid radius, using sharp apex:", { r, width, height });
                     dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
                 }
             } else {
