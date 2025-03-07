@@ -1,4 +1,4 @@
-// Parts library with corrected triangle apex radius tangency
+// Parts library with simplified triangle apex radius
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -193,54 +193,40 @@ const partsLibrary = {
     triangle: {
         name: "Triangle",
         draw: (ctx, width, height, holeSize, cornerRadius = 0) => {
-            const r = cornerRadius * 10; // Scale radius to canvas units (consistent with width/height)
+            const r = cornerRadius * 10; // Canvas units
             const apexX = width / 2;
             const apexY = 0;
 
             ctx.beginPath();
             ctx.moveTo(0, height); // Bottom-left
 
+            console.log("Drawing triangle:", { width, height, r, apexX, apexY });
+
             if (r > 0) {
-                // Center below apex
                 const centerX = apexX;
-                const centerY = r;
+                const centerY = r; // Center r units below apex
 
-                // Left side: y = height - m * x, where m = height / (width / 2)
-                const m = height / (width / 2);
-                // Circle: (x - centerX)^2 + (y - centerY)^2 = r^2
-                // Substitute y = height - m * x into circle equation
-                const a = 1 + m * m;
-                const b = -2 * centerX + 2 * m * (height - centerY);
-                const c = centerX * centerX + (height - centerY) * (height - centerY) - r * r;
-                const discriminant = b * b - 4 * a * c;
+                // Simplified tangent points: offset along sides
+                const m = height / (width / 2); // Slope
+                const theta = Math.atan(m); // Angle from horizontal
+                const offsetX = r * Math.sin(theta); // Tangent offset
+                const offsetY = r * Math.cos(theta);
 
-                console.log("Triangle calc:", { r, centerX, centerY, m, a, b, c, discriminant });
+                const leftTangentX = apexX - offsetX;
+                const leftTangentY = apexY + offsetY;
+                const rightTangentX = apexX + offsetX;
+                const rightTangentY = apexY + offsetY;
 
-                if (discriminant >= 0) {
-                    const sqrtDisc = Math.sqrt(discriminant);
-                    const x1 = (-b + sqrtDisc) / (2 * a); // Closer to base (larger x)
-                    const x2 = (-b - sqrtDisc) / (2 * a); // Closer to apex (smaller x)
-                    const leftTangentX = x1 > x2 ? x1 : x2;
-                    const leftTangentY = height - m * leftTangentX;
+                const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
+                const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
 
-                    // Right tangent via symmetry
-                    const rightTangentX = width - leftTangentX;
-                    const rightTangentY = leftTangentY;
+                console.log("Radius applied:", { centerX, centerY, leftTangentX, leftTangentY, rightTangentX, rightTangentY, startAngle, endAngle });
 
-                    const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
-                    const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
-
-                    console.log("Tangent points:", { leftTangentX, leftTangentY, rightTangentX, rightTangentY, startAngle, endAngle });
-
-                    ctx.lineTo(leftTangentX, leftTangentY);
-                    ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
-                    ctx.lineTo(width, height);
-                } else {
-                    console.log("Invalid radius, using sharp apex:", { r, width, height });
-                    ctx.lineTo(apexX, apexY);
-                    ctx.lineTo(width, height);
-                }
+                ctx.lineTo(leftTangentX, leftTangentY);
+                ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
+                ctx.lineTo(width, height);
             } else {
+                console.log("No radius, sharp apex");
                 ctx.lineTo(apexX, apexY);
                 ctx.lineTo(width, height);
             }
@@ -249,7 +235,6 @@ const partsLibrary = {
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Optional hole at centroid
             if (holeSize > 0) {
                 ctx.globalCompositeOperation = "destination-out";
                 const holeRadius = (holeSize / 2) * 10;
@@ -263,7 +248,7 @@ const partsLibrary = {
         },
         toDXF: (width, height, holeSize, cornerRadius = 0) => {
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
-            const r = cornerRadius * 10; // Consistent scaling with draw
+            const r = cornerRadius; // DXF in inches
             const apexX = width / 2;
             const apexY = height;
 
@@ -275,37 +260,27 @@ const partsLibrary = {
                 const centerY = height - r;
 
                 const m = height / (width / 2);
-                const a = 1 + m * m;
-                const b = -2 * centerX + 2 * m * (height - centerY);
-                const c = centerX * centerX + (height - centerY) * (height - centerY) - r * r;
-                const discriminant = b * b - 4 * a * c;
+                const theta = Math.atan(m);
+                const offsetX = r * Math.sin(theta);
+                const offsetY = r * Math.cos(theta);
 
-                if (discriminant >= 0) {
-                    const sqrtDisc = Math.sqrt(discriminant);
-                    const x1 = (-b + sqrtDisc) / (2 * a);
-                    const x2 = (-b - sqrtDisc) / (2 * a);
-                    const leftTangentX = x1 > x2 ? x1 : x2;
-                    const leftTangentY = height - m * leftTangentX;
+                const leftTangentX = apexX - offsetX;
+                const leftTangentY = apexY - offsetY;
+                const rightTangentX = apexX + offsetX;
+                const rightTangentY = apexY - offsetY;
 
-                    const rightTangentX = width - leftTangentX;
-                    const rightTangentY = leftTangentY;
+                const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
+                const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
 
-                    const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
-                    const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
-
-                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
-                    const steps = 8;
-                    for (let i = 0; i <= steps; i++) {
-                        const angle = startAngle + (endAngle - startAngle) * i / steps;
-                        const x = centerX + r * Math.cos(angle);
-                        const y = centerY + r * Math.sin(angle);
-                        dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
-                    }
-                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString());
-                } else {
-                    console.log("DXF: Invalid radius, using sharp apex:", { r, width, height });
-                    dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
+                const steps = 8;
+                for (let i = 0; i <= steps; i++) {
+                    const angle = startAngle + (endAngle - startAngle) * i / steps;
+                    const x = centerX + r * Math.cos(angle);
+                    const y = centerY + r * Math.sin(angle);
+                    dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
                 }
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString());
             } else {
                 dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
             }
