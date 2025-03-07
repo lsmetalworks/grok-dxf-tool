@@ -1,4 +1,4 @@
-// Parts library with corrected triangle apex radius tangency
+// Parts library with trapezoid and common radius on short side
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -189,56 +189,81 @@ const partsLibrary = {
         }
     },
     triangle: {
-        name: "Triangle",
+        name: "Trapezoid",
         draw: (ctx, width, height, holeSize, cornerRadius = 0) => {
             const r = cornerRadius * 10; // Canvas units
-            const apexX = width / 2;
-            const apexY = height - r; // Top of arc at height - r
+            const topWidth = width * 0.2; // Short top side (20% of base width)
+            const topY = height; // Top at specified height
+            const topLeftX = (width - topWidth) / 2;
+            const topRightX = topLeftX + topWidth;
 
             ctx.beginPath();
             ctx.moveTo(0, 0); // Bottom-left
 
-            console.log("Drawing triangle:", { width, height, r, apexX, apexY });
+            console.log("Drawing trapezoid:", { width, height, r, topWidth, topY, topLeftX, topRightX });
 
-            if (r > 0) {
-                const m = (height - r) / (width / 2); // Slope to apex
-                const centerX = apexX;
-                const centerY = apexY - r; // Center r units below apex
+            if (r > 0 && r <= topWidth / 2) { // Ensure radius fits within top width
+                // Left arc center
+                const leftCenterX = topLeftX + r;
+                const leftCenterY = topY - r;
+                const mLeft = (topY - r) / topLeftX; // Slope of left side
 
-                // Tangent points: circle intersects y = m * x
-                const a = 1 + m * m;
-                const b = -2 * centerX - 2 * m * centerY;
-                const c = centerX * centerX + centerY * centerY - r * r;
-                const discriminant = b * b - 4 * a * c;
+                // Left tangent points
+                const aLeft = 1 + mLeft * mLeft;
+                const bLeft = -2 * leftCenterX - 2 * mLeft * leftCenterY;
+                const cLeft = leftCenterX * leftCenterX + leftCenterY * leftCenterY - r * r;
+                const discLeft = bLeft * bLeft - 4 * aLeft * cLeft;
 
-                console.log("Circle calc:", { a, b, c, discriminant });
+                // Right arc center
+                const rightCenterX = topRightX - r;
+                const rightCenterY = topY - r;
+                const mRight = (topY - r) / (width - topRightX); // Slope of right side
 
-                if (discriminant >= 0) {
-                    const sqrtDisc = Math.sqrt(discriminant);
-                    const x1 = (-b - sqrtDisc) / (2 * a); // Closer to apex
-                    const x2 = (-b + sqrtDisc) / (2 * a); // Closer to base
-                    const leftTangentX = x2;
-                    const leftTangentY = m * leftTangentX;
+                // Right tangent points
+                const aRight = 1 + mRight * mRight;
+                const bRight = -2 * rightCenterX + 2 * mRight * (rightCenterY - height);
+                const cRight = rightCenterX * rightCenterX + (rightCenterY - height) * (rightCenterY - height) - r * r;
+                const discRight = bRight * bRight - 4 * aRight * cRight;
 
-                    const rightTangentX = width - leftTangentX;
-                    const rightTangentY = leftTangentY;
+                console.log("Arc calc:", { discLeft, discRight });
 
-                    const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
-                    const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
+                if (discLeft >= 0 && discRight >= 0) {
+                    const sqrtDiscLeft = Math.sqrt(discLeft);
+                    const xLeft1 = (-bLeft - sqrtDiscLeft) / (2 * aLeft);
+                    const xLeft2 = (-bLeft + sqrtDiscLeft) / (2 * aLeft);
+                    const leftTangentXBottom = xLeft2; // Closer to base
+                    const leftTangentYBottom = mLeft * leftTangentXBottom;
+                    const leftTangentXTop = leftCenterX;
+                    const leftTangentYTop = leftCenterY + r;
 
-                    console.log("Tangent points:", { leftTangentX, leftTangentY, rightTangentX, rightTangentY, centerX, centerY, startAngle, endAngle });
+                    const sqrtDiscRight = Math.sqrt(discRight);
+                    const xRight1 = (-bRight - sqrtDiscRight) / (2 * aRight);
+                    const xRight2 = (-bRight + sqrtDiscRight) / (2 * aRight);
+                    const rightTangentXBottom = xRight1; // Closer to base
+                    const rightTangentYBottom = height - mRight * (width - rightTangentXBottom);
+                    const rightTangentXTop = rightCenterX;
+                    const rightTangentYTop = rightCenterY + r;
 
-                    ctx.lineTo(leftTangentX, leftTangentY);
-                    ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
+                    console.log("Tangent points:", {
+                        leftTangentXBottom, leftTangentYBottom, leftTangentXTop, leftTangentYTop,
+                        rightTangentXBottom, rightTangentYBottom, rightTangentXTop, rightTangentYTop
+                    });
+
+                    ctx.lineTo(leftTangentXBottom, leftTangentYBottom);
+                    ctx.arc(leftCenterX, leftCenterY, r, Math.atan2(leftTangentYBottom - leftCenterY, leftTangentXBottom - leftCenterX), Math.PI / 2, false);
+                    ctx.lineTo(rightTangentXTop, rightTangentYTop);
+                    ctx.arc(rightCenterX, rightCenterY, r, Math.PI / 2, Math.atan2(rightTangentYBottom - rightCenterY, rightTangentXBottom - rightCenterX), false);
                     ctx.lineTo(width, 0);
                 } else {
-                    console.log("Invalid radius, using sharp apex:", { r, width, height });
-                    ctx.lineTo(apexX, apexY);
+                    console.log("Invalid radius for tangency, using flat top:", { r, width, height });
+                    ctx.lineTo(topLeftX, topY);
+                    ctx.lineTo(topRightX, topY);
                     ctx.lineTo(width, 0);
                 }
             } else {
-                console.log("No radius, sharp apex");
-                ctx.lineTo(apexX, apexY);
+                console.log("No radius or radius too large, flat top");
+                ctx.lineTo(topLeftX, topY);
+                ctx.lineTo(topRightX, topY);
                 ctx.lineTo(width, 0);
             }
 
@@ -266,44 +291,64 @@ const partsLibrary = {
                 "100", "AcDbEntity",
                 "8", "0",
                 "100", "AcDbPolyline",
-                "90", "4",
+                "90", "6", // 6 vertices for trapezoid with arcs
                 "70", "1",
                 "43", "0.0"
             ];
 
             const r = cornerRadius; // DXF in inches
-            const apexX = width / 2;
-            const apexY = height - r;
+            const topWidth = width * 0.2;
+            const topY = height;
+            const topLeftX = (width - topWidth) / 2;
+            const topRightX = topLeftX + topWidth;
 
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0");
 
-            if (r > 0) {
-                const m = (height - r) / (width / 2);
-                const centerX = apexX;
-                const centerY = apexY - r;
+            if (r > 0 && r <= topWidth / 2) {
+                const mLeft = (height - r) / topLeftX;
+                const leftCenterX = topLeftX + r;
+                const leftCenterY = topY - r;
 
-                const a = 1 + m * m;
-                const b = -2 * centerX - 2 * m * centerY;
-                const c = centerX * centerX + centerY * centerY - r * r;
-                const discriminant = b * b - 4 * a * c;
+                const aLeft = 1 + mLeft * mLeft;
+                const bLeft = -2 * leftCenterX - 2 * mLeft * leftCenterY;
+                const cLeft = leftCenterX * leftCenterX + leftCenterY * leftCenterY - r * r;
+                const discLeft = bLeft * bLeft - 4 * aLeft * cLeft;
 
-                if (discriminant >= 0) {
-                    const sqrtDisc = Math.sqrt(discriminant);
-                    const x1 = (-b - sqrtDisc) / (2 * a);
-                    const x2 = (-b + sqrtDisc) / (2 * a);
-                    const leftTangentX = x2;
-                    const leftTangentY = m * leftTangentX;
+                const mRight = (height - r) / (width - topRightX);
+                const rightCenterX = topRightX - r;
+                const rightCenterY = topY - r;
 
-                    const rightTangentX = width - leftTangentX;
-                    const rightTangentY = leftTangentY;
+                const aRight = 1 + mRight * mRight;
+                const bRight = -2 * rightCenterX + 2 * mRight * (rightCenterY - height);
+                const cRight = rightCenterX * rightCenterX + (rightCenterY - height) * (rightCenterY - height) - r * r;
+                const discRight = bRight * bRight - 4 * aRight * cRight;
 
-                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
-                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString(), "42", "-0.78077640640441359");
+                if (discLeft >= 0 && discRight >= 0) {
+                    const sqrtDiscLeft = Math.sqrt(discLeft);
+                    const xLeft2 = (-bLeft + sqrtDiscLeft) / (2 * aLeft);
+                    const leftTangentXBottom = xLeft2;
+                    const leftTangentYBottom = mLeft * leftTangentXBottom;
+                    const leftTangentXTop = leftCenterX;
+                    const leftTangentYTop = leftCenterY + r;
+
+                    const sqrtDiscRight = Math.sqrt(discRight);
+                    const xRight1 = (-bRight - sqrtDiscRight) / (2 * aRight);
+                    const rightTangentXBottom = xRight1;
+                    const rightTangentYBottom = height - mRight * (width - rightTangentXBottom);
+                    const rightTangentXTop = rightCenterX;
+                    const rightTangentYTop = rightCenterY + r;
+
+                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXBottom.toString(), "20", leftTangentYBottom.toString());
+                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.78077640640441359");
+                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString());
+                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXBottom.toString(), "20", rightTangentYBottom.toString(), "42", "-0.78077640640441359");
                 } else {
-                    dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
+                    dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
+                    dxf.push("0", "VERTEX", "8", "0", "10", topRightX.toString(), "20", topY.toString());
                 }
             } else {
-                dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", topRightX.toString(), "20", topY.toString());
             }
 
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0");
@@ -347,15 +392,15 @@ function previewPart() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = parseFloat(document.getElementById("height").value) * 10;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "Triangle") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "Trapezoid") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
-    const cornerRadius = (partType === "Holed Mounting Plate" || partType === "Triangle") ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
+    const cornerRadius = (partType === "Holed Mounting Plate" || partType === "Trapezoid") ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Triangle") && (!holeSize || isNaN(holeSize))) || 
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Trapezoid") && (!holeSize || isNaN(holeSize))) || 
         (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius))) || 
-        (partType === "Triangle" && (isNaN(cornerRadius)))) {
+        (partType === "Trapezoid" && (isNaN(cornerRadius)))) {
         alert("Please enter all required fields. Check console for details.");
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
         return;
@@ -372,7 +417,7 @@ function previewPart() {
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
-            } else if (partType === "Triangle") {
+            } else if (partType === "Trapezoid") {
                 part.draw(ctx, width, height, holeSize, cornerRadius);
             } else {
                 part.draw(ctx, width, height);
@@ -392,13 +437,13 @@ function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
     const width = parseFloat(document.getElementById("width").value);
     const height = parseFloat(document.getElementById("height").value);
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "Triangle") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "Trapezoid") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
-    const cornerRadius = (partType === "Holed Mounting Plate" || partType === "Triangle") ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
+    const cornerRadius = (partType === "Holed Mounting Plate" || partType === "Trapezoid") ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
 
-    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Triangle") && (!holeSize || isNaN(holeSize))) || 
+    if (!width || !height || ((partType === "Holed Mounting Plate" || partType === "Trapezoid") && (!holeSize || isNaN(holeSize))) || 
         (partType === "Holed Mounting Plate" && (!holeInset || isNaN(cornerRadius))) || 
-        (partType === "Triangle" && (isNaN(cornerRadius)))) {
+        (partType === "Trapezoid" && (isNaN(cornerRadius)))) {
         alert("Please enter all required fields.");
         return;
     }
@@ -406,7 +451,7 @@ function downloadDXF() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
-                          partType === "Triangle" ? part.toDXF(width, height, holeSize, cornerRadius) :
+                          partType === "Trapezoid" ? part.toDXF(width, height, holeSize, cornerRadius) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
