@@ -207,59 +207,32 @@ const partsLibrary = {
                 const leftCenterX = topLeftX + r;
                 const leftCenterY = topY - r;
                 const mLeft = (topY - r) / topLeftX; // Slope of left side
-
-                // Left tangent points
-                const aLeft = 1 + mLeft * mLeft;
-                const bLeft = -2 * leftCenterX - 2 * mLeft * leftCenterY;
-                const cLeft = leftCenterX * leftCenterX + leftCenterY * leftCenterY - r * r;
-                const discLeft = bLeft * bLeft - 4 * aLeft * cLeft;
+                const thetaLeft = Math.atan(mLeft);
+                const leftTangentXBottom = leftCenterX - r * Math.sin(thetaLeft);
+                const leftTangentYBottom = leftCenterY + r * Math.cos(thetaLeft);
+                const leftTangentXTop = leftCenterX;
+                const leftTangentYTop = topY;
 
                 // Right arc center
                 const rightCenterX = topRightX - r;
                 const rightCenterY = topY - r;
                 const mRight = (topY - r) / (width - topRightX); // Slope of right side
+                const thetaRight = Math.atan(mRight);
+                const rightTangentXBottom = rightCenterX + r * Math.sin(thetaRight);
+                const rightTangentYBottom = rightCenterY + r * Math.cos(thetaRight);
+                const rightTangentXTop = rightCenterX;
+                const rightTangentYTop = topY;
 
-                // Right tangent points
-                const aRight = 1 + mRight * mRight;
-                const bRight = -2 * rightCenterX + 2 * mRight * (rightCenterY - height);
-                const cRight = rightCenterX * rightCenterX + (rightCenterY - height) * (rightCenterY - height) - r * r;
-                const discRight = bRight * bRight - 4 * aRight * cRight;
+                console.log("Tangent points:", {
+                    leftTangentXBottom, leftTangentYBottom, leftTangentXTop, leftTangentYTop,
+                    rightTangentXBottom, rightTangentYBottom, rightTangentXTop, rightTangentYTop
+                });
 
-                console.log("Arc calc:", { discLeft, discRight });
-
-                if (discLeft >= 0 && discRight >= 0) {
-                    const sqrtDiscLeft = Math.sqrt(discLeft);
-                    const xLeft1 = (-bLeft - sqrtDiscLeft) / (2 * aLeft);
-                    const xLeft2 = (-bLeft + sqrtDiscLeft) / (2 * aLeft);
-                    const leftTangentXBottom = xLeft2; // Closer to base
-                    const leftTangentYBottom = mLeft * leftTangentXBottom;
-                    const leftTangentXTop = leftCenterX;
-                    const leftTangentYTop = leftCenterY + r;
-
-                    const sqrtDiscRight = Math.sqrt(discRight);
-                    const xRight1 = (-bRight - sqrtDiscRight) / (2 * aRight);
-                    const xRight2 = (-bRight + sqrtDiscRight) / (2 * aRight);
-                    const rightTangentXBottom = xRight1; // Closer to base
-                    const rightTangentYBottom = height - mRight * (width - rightTangentXBottom);
-                    const rightTangentXTop = rightCenterX;
-                    const rightTangentYTop = rightCenterY + r;
-
-                    console.log("Tangent points:", {
-                        leftTangentXBottom, leftTangentYBottom, leftTangentXTop, leftTangentYTop,
-                        rightTangentXBottom, rightTangentYBottom, rightTangentXTop, rightTangentYTop
-                    });
-
-                    ctx.lineTo(leftTangentXBottom, leftTangentYBottom);
-                    ctx.arc(leftCenterX, leftCenterY, r, Math.atan2(leftTangentYBottom - leftCenterY, leftTangentXBottom - leftCenterX), Math.PI / 2, false);
-                    ctx.lineTo(rightTangentXTop, rightTangentYTop);
-                    ctx.arc(rightCenterX, rightCenterY, r, Math.PI / 2, Math.atan2(rightTangentYBottom - rightCenterY, rightTangentXBottom - rightCenterX), false);
-                    ctx.lineTo(width, 0);
-                } else {
-                    console.log("Invalid radius for tangency, using flat top:", { r, width, height });
-                    ctx.lineTo(topLeftX, topY);
-                    ctx.lineTo(topRightX, topY);
-                    ctx.lineTo(width, 0);
-                }
+                ctx.lineTo(leftTangentXBottom, leftTangentYBottom);
+                ctx.arc(leftCenterX, leftCenterY, r, Math.atan2(leftTangentYBottom - leftCenterY, leftTangentXBottom - leftCenterX), Math.PI / 2, false);
+                ctx.lineTo(rightTangentXTop, rightTangentYTop);
+                ctx.arc(rightCenterX, rightCenterY, r, Math.PI / 2, Math.atan2(rightTangentYBottom - rightCenterY, rightTangentXBottom - rightCenterX), false);
+                ctx.lineTo(width, 0);
             } else {
                 console.log("No radius or radius too large, flat top");
                 ctx.lineTo(topLeftX, topY);
@@ -305,47 +278,28 @@ const partsLibrary = {
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0");
 
             if (r > 0 && r <= topWidth / 2) {
-                const mLeft = (height - r) / topLeftX;
                 const leftCenterX = topLeftX + r;
                 const leftCenterY = topY - r;
+                const mLeft = (topY - r) / topLeftX;
+                const thetaLeft = Math.atan(mLeft);
+                const leftTangentXBottom = leftCenterX - r * Math.sin(thetaLeft);
+                const leftTangentYBottom = leftCenterY + r * Math.cos(thetaLeft);
+                const leftTangentXTop = leftCenterX;
+                const leftTangentYTop = topY;
 
-                const aLeft = 1 + mLeft * mLeft;
-                const bLeft = -2 * leftCenterX - 2 * mLeft * leftCenterY;
-                const cLeft = leftCenterX * leftCenterX + leftCenterY * leftCenterY - r * r;
-                const discLeft = bLeft * bLeft - 4 * aLeft * cLeft;
-
-                const mRight = (height - r) / (width - topRightX);
                 const rightCenterX = topRightX - r;
                 const rightCenterY = topY - r;
+                const mRight = (topY - r) / (width - topRightX);
+                const thetaRight = Math.atan(mRight);
+                const rightTangentXBottom = rightCenterX + r * Math.sin(thetaRight);
+                const rightTangentYBottom = rightCenterY + r * Math.cos(thetaRight);
+                const rightTangentXTop = rightCenterX;
+                const rightTangentYTop = topY;
 
-                const aRight = 1 + mRight * mRight;
-                const bRight = -2 * rightCenterX + 2 * mRight * (rightCenterY - height);
-                const cRight = rightCenterX * rightCenterX + (rightCenterY - height) * (rightCenterY - height) - r * r;
-                const discRight = bRight * bRight - 4 * aRight * cRight;
-
-                if (discLeft >= 0 && discRight >= 0) {
-                    const sqrtDiscLeft = Math.sqrt(discLeft);
-                    const xLeft2 = (-bLeft + sqrtDiscLeft) / (2 * aLeft);
-                    const leftTangentXBottom = xLeft2;
-                    const leftTangentYBottom = mLeft * leftTangentXBottom;
-                    const leftTangentXTop = leftCenterX;
-                    const leftTangentYTop = leftCenterY + r;
-
-                    const sqrtDiscRight = Math.sqrt(discRight);
-                    const xRight1 = (-bRight - sqrtDiscRight) / (2 * aRight);
-                    const rightTangentXBottom = xRight1;
-                    const rightTangentYBottom = height - mRight * (width - rightTangentXBottom);
-                    const rightTangentXTop = rightCenterX;
-                    const rightTangentYTop = rightCenterY + r;
-
-                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXBottom.toString(), "20", leftTangentYBottom.toString());
-                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.78077640640441359");
-                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString());
-                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXBottom.toString(), "20", rightTangentYBottom.toString(), "42", "-0.78077640640441359");
-                } else {
-                    dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
-                    dxf.push("0", "VERTEX", "8", "0", "10", topRightX.toString(), "20", topY.toString());
-                }
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXBottom.toString(), "20", leftTangentYBottom.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.78077640640441359");
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXBottom.toString(), "20", rightTangentYBottom.toString(), "42", "-0.78077640640441359");
             } else {
                 dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
                 dxf.push("0", "VERTEX", "8", "0", "10", topRightX.toString(), "20", topY.toString());
