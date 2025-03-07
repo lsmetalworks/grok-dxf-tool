@@ -202,26 +202,23 @@ const partsLibrary = {
 
             console.log("Drawing trapezoid:", { width, height, r, topWidth, topY, topLeftX, topRightX });
 
-            if (r > 0 && r <= topWidth / 2) {
+            if (r > 0) { // Apply radius if positive, no upper limit for testing
+                console.log("Applying radius:", r);
                 // Left arc center (above top)
                 const leftCenterX = topLeftX + r;
                 const leftCenterY = topY + r;
-                const mLeft = topY / topLeftX; // Slope of left side
-                const thetaLeft = Math.atan(mLeft);
-                const leftTangentXSide = leftCenterX - r * Math.sin(thetaLeft); // Tangent on left side
-                const leftTangentYSide = leftCenterY - r * Math.cos(thetaLeft);
-                const leftTangentXTop = topLeftX;
-                const leftTangentYTop = topY;
+                const leftTangentXSide = topLeftX; // Start at top-left corner
+                const leftTangentYSide = topY;
+                const leftTangentXTop = leftCenterX;
+                const leftTangentYTop = topY + r; // Peak of arc
 
                 // Right arc center (above top)
                 const rightCenterX = topRightX - r;
                 const rightCenterY = topY + r;
-                const mRight = topY / (width - topRightX); // Slope of right side
-                const thetaRight = Math.atan(mRight);
-                const rightTangentXSide = rightCenterX + r * Math.sin(thetaRight); // Tangent on right side
-                const rightTangentYSide = rightCenterY - r * Math.cos(thetaRight);
-                const rightTangentXTop = topRightX;
-                const rightTangentYTop = topY;
+                const rightTangentXSide = topRightX; // Start at top-right corner
+                const rightTangentYSide = topY;
+                const rightTangentXTop = rightCenterX;
+                const rightTangentYTop = topY + r; // Peak of arc
 
                 console.log("Tangent points:", {
                     leftTangentXSide, leftTangentYSide, leftTangentXTop, leftTangentYTop,
@@ -229,12 +226,12 @@ const partsLibrary = {
                 });
 
                 ctx.lineTo(leftTangentXSide, leftTangentYSide);
-                ctx.arc(leftCenterX, leftCenterY, r, Math.PI - thetaLeft, Math.PI, false); // Side to top, clockwise
-                ctx.lineTo(rightTangentXTop, rightTangentYTop);
-                ctx.arc(rightCenterX, rightCenterY, r, 0, -thetaRight, false); // Top to side, clockwise
+                ctx.arc(leftCenterX, leftCenterY, r, Math.PI, 3 * Math.PI / 2, false); // 90° outward arc
+                ctx.lineTo(rightTangentXSide, rightTangentYSide);
+                ctx.arc(rightCenterX, rightCenterY, r, -Math.PI / 2, 0, false); // 90° outward arc
                 ctx.lineTo(width, 0);
             } else {
-                console.log("No radius or radius too large, flat top");
+                console.log("No radius, flat top");
                 ctx.lineTo(topLeftX, topY);
                 ctx.lineTo(topRightX, topY);
                 ctx.lineTo(width, 0);
@@ -277,29 +274,25 @@ const partsLibrary = {
 
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0");
 
-            if (r > 0 && r <= topWidth / 2) {
+            if (r > 0) {
                 const leftCenterX = topLeftX + r;
                 const leftCenterY = topY + r;
-                const mLeft = topY / topLeftX;
-                const thetaLeft = Math.atan(mLeft);
-                const leftTangentXSide = leftCenterX - r * Math.sin(thetaLeft);
-                const leftTangentYSide = leftCenterY - r * Math.cos(thetaLeft);
-                const leftTangentXTop = topLeftX;
-                const leftTangentYTop = topY;
+                const leftTangentXSide = topLeftX;
+                const leftTangentYSide = topY;
+                const leftTangentXTop = leftCenterX;
+                const leftTangentYTop = topY + r;
 
                 const rightCenterX = topRightX - r;
                 const rightCenterY = topY + r;
-                const mRight = topY / (width - topRightX);
-                const thetaRight = Math.atan(mRight);
-                const rightTangentXSide = rightCenterX + r * Math.sin(thetaRight);
-                const rightTangentYSide = rightCenterY - r * Math.cos(thetaRight);
-                const rightTangentXTop = topRightX;
-                const rightTangentYTop = topY;
+                const rightTangentXSide = topRightX;
+                const rightTangentYSide = topY;
+                const rightTangentXTop = rightCenterX;
+                const rightTangentYTop = topY + r;
 
                 dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXSide.toString(), "20", leftTangentYSide.toString());
-                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.78077640640441359"); // Clockwise
-                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString());
-                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXSide.toString(), "20", rightTangentYSide.toString(), "42", "-0.78077640640441359"); // Clockwise
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.41421356237309515"); // Bulge for 90° arc
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXSide.toString(), "20", rightTangentYSide.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString(), "42", "-0.41421356237309515"); // Bulge for 90° arc
             } else {
                 dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
                 dxf.push("0", "VERTEX", "8", "0", "10", topRightX.toString(), "20", topY.toString());
@@ -429,6 +422,3 @@ function downloadDXF() {
         document.body.removeChild(link);
     }
 }
-
-// Ensure previewPart is callable (e.g., via button)
-document.getElementById("preview-button") && document.getElementById("preview-button").addEventListener("click", previewPart);
