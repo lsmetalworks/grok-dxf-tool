@@ -297,9 +297,9 @@ const partsLibrary = {
                 const rightTangentYTop = topY;
 
                 dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXSide.toString(), "20", leftTangentYSide.toString());
-                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.78077640640441359"); // Negative bulge for clockwise
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.78077640640441359"); // Clockwise
                 dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString());
-                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXSide.toString(), "20", rightTangentYSide.toString(), "42", "-0.78077640640441359"); // Negative bulge
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXSide.toString(), "20", rightTangentYSide.toString(), "42", "-0.78077640640441359"); // Clockwise
             } else {
                 dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
                 dxf.push("0", "VERTEX", "8", "0", "10", topRightX.toString(), "20", topY.toString());
@@ -367,7 +367,7 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        ctx.translate(200 - width / 2, 200 - height - r); // Adjust for radius extending above height
+        ctx.translate(200 - width / 2, 200 - height - (cornerRadius * 10)); // Adjust for radius height
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
