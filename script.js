@@ -150,7 +150,7 @@ const partsLibrary = {
                     dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
                 }
                 dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", (height - cornerRadius).toString());
-                for (let i = 0; i <= steps; i++) {
+KnifeCenter                for (let i = 0; i <= steps; i++) {
                     const angle = Math.PI + (Math.PI / 2) * (i / steps);
                     const x = cornerRadius + cornerRadius * Math.cos(angle);
                     const y = cornerRadius + cornerRadius * Math.sin(angle);
@@ -208,8 +208,8 @@ const partsLibrary = {
                 const leftCenterY = topY - r;
                 const mLeft = (topY - r) / topLeftX; // Slope of left side
                 const thetaLeft = Math.atan(mLeft);
-                const leftTangentXBottom = leftCenterX - r * Math.sin(thetaLeft);
-                const leftTangentYBottom = leftCenterY + r * Math.cos(thetaLeft);
+                const leftTangentXBottom = leftCenterX + r * Math.sin(thetaLeft); // Outward
+                const leftTangentYBottom = leftCenterY - r * Math.cos(thetaLeft);
                 const leftTangentXTop = leftCenterX;
                 const leftTangentYTop = topY;
 
@@ -218,8 +218,8 @@ const partsLibrary = {
                 const rightCenterY = topY - r;
                 const mRight = (topY - r) / (width - topRightX); // Slope of right side
                 const thetaRight = Math.atan(mRight);
-                const rightTangentXBottom = rightCenterX + r * Math.sin(thetaRight);
-                const rightTangentYBottom = rightCenterY + r * Math.cos(thetaRight);
+                const rightTangentXBottom = rightCenterX - r * Math.sin(thetaRight); // Outward
+                const rightTangentYBottom = rightCenterY - r * Math.cos(thetaRight);
                 const rightTangentXTop = rightCenterX;
                 const rightTangentYTop = topY;
 
@@ -229,9 +229,9 @@ const partsLibrary = {
                 });
 
                 ctx.lineTo(leftTangentXBottom, leftTangentYBottom);
-                ctx.arc(leftCenterX, leftCenterY, r, Math.atan2(leftTangentYBottom - leftCenterY, leftTangentXBottom - leftCenterX), Math.PI / 2, false);
+                ctx.arc(leftCenterX, leftCenterY, r, Math.PI / 2, Math.PI - thetaLeft, true); // Top to bottom, counterclockwise
                 ctx.lineTo(rightTangentXTop, rightTangentYTop);
-                ctx.arc(rightCenterX, rightCenterY, r, Math.PI / 2, Math.atan2(rightTangentYBottom - rightCenterY, rightTangentXBottom - rightCenterX), false);
+                ctx.arc(rightCenterX, rightCenterY, r, Math.PI / 2 - thetaRight, 0, true); // Top to bottom, counterclockwise
                 ctx.lineTo(width, 0);
             } else {
                 console.log("No radius or radius too large, flat top");
@@ -282,8 +282,8 @@ const partsLibrary = {
                 const leftCenterY = topY - r;
                 const mLeft = (topY - r) / topLeftX;
                 const thetaLeft = Math.atan(mLeft);
-                const leftTangentXBottom = leftCenterX - r * Math.sin(thetaLeft);
-                const leftTangentYBottom = leftCenterY + r * Math.cos(thetaLeft);
+                const leftTangentXBottom = leftCenterX + r * Math.sin(thetaLeft);
+                const leftTangentYBottom = leftCenterY - r * Math.cos(thetaLeft);
                 const leftTangentXTop = leftCenterX;
                 const leftTangentYTop = topY;
 
@@ -291,15 +291,15 @@ const partsLibrary = {
                 const rightCenterY = topY - r;
                 const mRight = (topY - r) / (width - topRightX);
                 const thetaRight = Math.atan(mRight);
-                const rightTangentXBottom = rightCenterX + r * Math.sin(thetaRight);
-                const rightTangentYBottom = rightCenterY + r * Math.cos(thetaRight);
+                const rightTangentXBottom = rightCenterX - r * Math.sin(thetaRight);
+                const rightTangentYBottom = rightCenterY - r * Math.cos(thetaRight);
                 const rightTangentXTop = rightCenterX;
                 const rightTangentYTop = topY;
 
                 dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXBottom.toString(), "20", leftTangentYBottom.toString());
-                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.78077640640441359");
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "0.78077640640441359"); // Positive bulge for outward arc
                 dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString());
-                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXBottom.toString(), "20", rightTangentYBottom.toString(), "42", "-0.78077640640441359");
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXBottom.toString(), "20", rightTangentYBottom.toString(), "42", "0.78077640640441359"); // Positive bulge
             } else {
                 dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
                 dxf.push("0", "VERTEX", "8", "0", "10", topRightX.toString(), "20", topY.toString());
