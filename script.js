@@ -1,4 +1,4 @@
-// Parts library with triangle matching DXF template
+// Parts library with corrected triangle apex radius
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -193,37 +193,50 @@ const partsLibrary = {
         draw: (ctx, width, height, holeSize, cornerRadius = 0) => {
             const r = cornerRadius * 10; // Canvas units
             const apexX = width / 2;
-            const apexY = height - (cornerRadius * 10); // Apex adjusted for radius
+            const apexY = height - r; // Apex at height minus radius
 
             ctx.beginPath();
-            ctx.moveTo(0, 0); // Bottom-left (canvas: y=0 at bottom)
+            ctx.moveTo(0, 0); // Bottom-left
 
             console.log("Drawing triangle:", { width, height, r, apexX, apexY });
 
             if (r > 0) {
-                // Center based on template proportions
-                const m = (height - r) / (width / 2); // Slope to apex before radius
+                // Center below apex
+                const m = (height - r) / (width / 2); // Slope to apex
                 const centerX = apexX;
-                const centerY = height - (r * 10 * 0.9692 / 0.125); // Scale from template center
+                const centerY = apexY - r; // Center r units below apex
 
-                // Tangent points scaled from template
-                const tangentXOffset = (0.2425 / 0.125) * r; // Proportion from template
-                const tangentYOffset = height - (1.0299 / 0.125) * r;
+                // Tangent points: intersect circle with sides
+                const a = 1 + m * m;
+                const b = -2 * centerX - 2 * m * centerY;
+                const c = centerX * centerX + centerY * centerY - r * r;
+                const discriminant = b * b - 4 * a * c;
 
-                const leftTangentX = apexX - tangentXOffset;
-                const leftTangentY = tangentYOffset;
-                const rightTangentX = apexX + tangentXOffset;
-                const rightTangentY = tangentYOffset;
+                console.log("Circle calc:", { a, b, c, discriminant });
 
-                // Angles from template bulge (-0.780776 ≈ 140.768° arc)
-                const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
-                const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
+                if (discriminant >= 0) {
+                    const sqrtDisc = Math.sqrt(discriminant);
+                    const x1 = (-b - sqrtDisc) / (2 * a); // Closer to apex
+                    const x2 = (-b + sqrtDisc) / (2 * a); // Closer to base
+                    const leftTangentX = x2;
+                    const leftTangentY = m * leftTangentX;
 
-                console.log("Radius applied:", { centerX, centerY, leftTangentX, leftTangentY, rightTangentX, rightTangentY, startAngle, endAngle });
+                    const rightTangentX = width - leftTangentX;
+                    const rightTangentY = leftTangentY;
 
-                ctx.lineTo(leftTangentX, leftTangentY);
-                ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
-                ctx.lineTo(width, 0);
+                    const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
+                    const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
+
+                    console.log("Tangent points:", { leftTangentX, leftTangentY, rightTangentX, rightTangentY, centerX, centerY, startAngle, endAngle });
+
+                    ctx.lineTo(leftTangentX, leftTangentY);
+                    ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
+                    ctx.lineTo(width, 0);
+                } else {
+                    console.log("Invalid radius, using sharp apex:", { r, width, height });
+                    ctx.lineTo(apexX, apexY);
+                    ctx.lineTo(width, 0);
+                }
             } else {
                 console.log("No radius, sharp apex");
                 ctx.lineTo(apexX, apexY);
@@ -238,7 +251,7 @@ const partsLibrary = {
                 ctx.globalCompositeOperation = "destination-out";
                 const holeRadius = (holeSize / 2) * 10;
                 const centroidX = width / 2;
-                const centroidY = height / 3; // Centroid in canvas coords
+                const centroidY = height / 3;
                 ctx.beginPath();
                 ctx.arc(centroidX, centroidY, holeRadius, 0, Math.PI * 2);
                 ctx.fill();
@@ -254,46 +267,47 @@ const partsLibrary = {
                 "100", "AcDbEntity",
                 "8", "0",
                 "100", "AcDbPolyline",
-                "90", "4", // Number of vertices
-                "70", "1", // Closed polyline
-                "43", "0.0" // Constant width
+                "90", "4",
+                "70", "1",
+                "43", "0.0"
             ];
 
             const r = cornerRadius; // DXF in inches
             const apexX = width / 2;
-            const apexY = height - cornerRadius; // Apex adjusted for radius
+            const apexY = height - r;
 
-            // Bottom-left
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0");
 
             if (r > 0) {
                 const m = (height - r) / (width / 2);
                 const centerX = apexX;
-                const centerY = r * 0.9692 / 0.125; // Match template center proportion
+                const centerY = apexY - r;
 
-                const tangentXOffset = (0.2425 / 0.125) * r;
-                const tangentYOffset = (1.0299 / 0.125) * r;
+                const a = 1 + m * m;
+                const b = -2 * centerX - 2 * m * centerY;
+                const c = centerX * centerX + centerY * centerY - r * r;
+                const discriminant = b * b - 4 * a * c;
 
-                const leftTangentX = apexX - tangentXOffset;
-                const leftTangentY = tangentYOffset;
-                const rightTangentX = apexX + tangentXOffset;
-                const rightTangentY = tangentYOffset;
+                if (discriminant >= 0) {
+                    const sqrtDisc = Math.sqrt(discriminant);
+                    const x1 = (-b - sqrtDisc) / (2 * a);
+                    const x2 = (-b + sqrtDisc) / (2 * a);
+                    const leftTangentX = x2;
+                    const leftTangentY = m * leftTangentX;
 
-                const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
-                const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
+                    const rightTangentX = width - leftTangentX;
+                    const rightTangentY = leftTangentY;
 
-                // Left tangent
-                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
-                // Right tangent with bulge
-                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString(), "42", "-0.78077640640441359");
+                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
+                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString(), "42", "-0.78077640640441359");
+                } else {
+                    dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
+                }
             } else {
-                // Apex
                 dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
             }
 
-            // Bottom-right
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0");
-
             dxf.push("0", "SEQEND", "0", "ENDSEC", "0", "EOF");
 
             return dxf.join("\n");
@@ -320,9 +334,9 @@ document.querySelectorAll("#parts-list li").forEach(item => {
             document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
         } else if (partType === "triangle") {
             document.getElementById("holeSize").value = "0.25";
-            document.getElementById("cornerRadius").value = "0"; // Default radius
+            document.getElementById("cornerRadius").value = "0";
             document.getElementById("holeInset").style.display = "none";
-            document.getElementById("cornerRadius").style.display = "block"; // Show radius input
+            document.getElementById("cornerRadius").style.display = "block";
             document.getElementById("holeInset").previousElementSibling.style.display = "none";
             document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
         }
@@ -355,7 +369,7 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        ctx.translate(200 - width / 2, 200 - height / 2); // Center the part
+        ctx.translate(200 - width / 2, 200 - height); // Origin at bottom-left, fit within canvas
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
