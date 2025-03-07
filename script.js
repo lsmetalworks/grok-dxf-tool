@@ -193,7 +193,7 @@ const partsLibrary = {
         draw: (ctx, width, height, holeSize, cornerRadius = 0) => {
             const r = cornerRadius * 10; // Canvas units
             const apexX = width / 2;
-            const apexY = height - r; // Apex at height minus radius
+            const apexY = height - r; // Top of arc at height - r
 
             ctx.beginPath();
             ctx.moveTo(0, 0); // Bottom-left
@@ -201,42 +201,27 @@ const partsLibrary = {
             console.log("Drawing triangle:", { width, height, r, apexX, apexY });
 
             if (r > 0) {
-                // Center below apex
-                const m = (height - r) / (width / 2); // Slope to apex
                 const centerX = apexX;
                 const centerY = apexY - r; // Center r units below apex
 
-                // Tangent points: intersect circle with sides
-                const a = 1 + m * m;
-                const b = -2 * centerX - 2 * m * centerY;
-                const c = centerX * centerX + centerY * centerY - r * r;
-                const discriminant = b * b - 4 * a * c;
+                // Tangent points: perpendicular offset from center to sides
+                const m = (height - r) / (width / 2); // Slope to apex
+                const tangentXOffset = r / Math.sqrt(1 + m * m); // Perpendicular distance
+                const tangentY = centerY + (r * m / Math.sqrt(1 + m * m));
 
-                console.log("Circle calc:", { a, b, c, discriminant });
+                const leftTangentX = centerX - tangentXOffset;
+                const leftTangentY = tangentY;
+                const rightTangentX = centerX + tangentXOffset;
+                const rightTangentY = tangentY;
 
-                if (discriminant >= 0) {
-                    const sqrtDisc = Math.sqrt(discriminant);
-                    const x1 = (-b - sqrtDisc) / (2 * a); // Closer to apex
-                    const x2 = (-b + sqrtDisc) / (2 * a); // Closer to base
-                    const leftTangentX = x2;
-                    const leftTangentY = m * leftTangentX;
+                const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
+                const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
 
-                    const rightTangentX = width - leftTangentX;
-                    const rightTangentY = leftTangentY;
+                console.log("Tangent points:", { leftTangentX, leftTangentY, rightTangentX, rightTangentY, centerX, centerY, startAngle, endAngle });
 
-                    const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
-                    const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
-
-                    console.log("Tangent points:", { leftTangentX, leftTangentY, rightTangentX, rightTangentY, centerX, centerY, startAngle, endAngle });
-
-                    ctx.lineTo(leftTangentX, leftTangentY);
-                    ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
-                    ctx.lineTo(width, 0);
-                } else {
-                    console.log("Invalid radius, using sharp apex:", { r, width, height });
-                    ctx.lineTo(apexX, apexY);
-                    ctx.lineTo(width, 0);
-                }
+                ctx.lineTo(leftTangentX, leftTangentY);
+                ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
+                ctx.lineTo(width, 0);
             } else {
                 console.log("No radius, sharp apex");
                 ctx.lineTo(apexX, apexY);
@@ -279,30 +264,19 @@ const partsLibrary = {
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0");
 
             if (r > 0) {
-                const m = (height - r) / (width / 2);
                 const centerX = apexX;
                 const centerY = apexY - r;
+                const m = (height - r) / (width / 2);
+                const tangentXOffset = r / Math.sqrt(1 + m * m);
+                const tangentY = centerY + (r * m / Math.sqrt(1 + m * m));
 
-                const a = 1 + m * m;
-                const b = -2 * centerX - 2 * m * centerY;
-                const c = centerX * centerX + centerY * centerY - r * r;
-                const discriminant = b * b - 4 * a * c;
+                const leftTangentX = centerX - tangentXOffset;
+                const leftTangentY = tangentY;
+                const rightTangentX = centerX + tangentXOffset;
+                const rightTangentY = tangentY;
 
-                if (discriminant >= 0) {
-                    const sqrtDisc = Math.sqrt(discriminant);
-                    const x1 = (-b - sqrtDisc) / (2 * a);
-                    const x2 = (-b + sqrtDisc) / (2 * a);
-                    const leftTangentX = x2;
-                    const leftTangentY = m * leftTangentX;
-
-                    const rightTangentX = width - leftTangentX;
-                    const rightTangentY = leftTangentY;
-
-                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
-                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString(), "42", "-0.78077640640441359");
-                } else {
-                    dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
-                }
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString(), "42", "-0.78077640640441359");
             } else {
                 dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
             }
@@ -369,7 +343,7 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        ctx.translate(200 - width / 2, 200 - height); // Origin at bottom-left, fit within canvas
+        ctx.translate(200 - width / 2, 200 - height); // Bottom-left at (x, 0), top at height
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
