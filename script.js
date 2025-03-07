@@ -1,4 +1,4 @@
-// Parts library with simplified triangle apex radius
+// Parts library with corrected triangle apex radius tangency
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -203,14 +203,14 @@ const partsLibrary = {
             console.log("Drawing triangle:", { width, height, r, apexX, apexY });
 
             if (r > 0) {
-                const centerX = apexX;
-                const centerY = r; // Center r units below apex
-
-                // Simplified tangent points: offset along sides
+                // Center calculation for tangency
                 const m = height / (width / 2); // Slope
-                const theta = Math.atan(m); // Angle from horizontal
-                const offsetX = r * Math.sin(theta); // Tangent offset
-                const offsetY = r * Math.cos(theta);
+                const centerX = apexX;
+                const centerY = r * Math.sqrt(1 + m * m) / m; // Adjust center so distance to side = r
+
+                // Tangent points: perpendicular distance = r
+                const offsetX = r / Math.sqrt(1 + m * m);
+                const offsetY = m * offsetX;
 
                 const leftTangentX = apexX - offsetX;
                 const leftTangentY = apexY + offsetY;
@@ -256,13 +256,12 @@ const partsLibrary = {
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left
 
             if (r > 0) {
-                const centerX = apexX;
-                const centerY = height - r;
-
                 const m = height / (width / 2);
-                const theta = Math.atan(m);
-                const offsetX = r * Math.sin(theta);
-                const offsetY = r * Math.cos(theta);
+                const centerX = apexX;
+                const centerY = height - (r * Math.sqrt(1 + m * m) / m);
+
+                const offsetX = r / Math.sqrt(1 + m * m);
+                const offsetY = m * offsetX;
 
                 const leftTangentX = apexX - offsetX;
                 const leftTangentY = apexY - offsetY;
