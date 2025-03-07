@@ -202,7 +202,7 @@ const partsLibrary = {
 
             console.log("Drawing trapezoid:", { width, height, r, topWidth, topY, topLeftX, topRightX });
 
-            if (r > 0 && r <= topWidth / 2) { // Ensure radius fits within top width
+            if (r > 0 && r <= topWidth / 2) {
                 // Left arc center (above top)
                 const leftCenterX = topLeftX + r;
                 const leftCenterY = topY + r;
@@ -338,6 +338,7 @@ document.querySelectorAll("#parts-list li").forEach(item => {
             document.getElementById("holeInset").previousElementSibling.style.display = "none";
             document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
         }
+        console.log("Part selected:", partType);
     });
 });
 
@@ -361,13 +362,25 @@ function previewPart() {
     }
 
     const canvas = document.getElementById("part-preview");
+    if (!canvas) {
+        console.error("Canvas element 'part-preview' not found!");
+        return;
+    }
+    console.log("Canvas found:", { width: canvas.width, height: canvas.height });
+
     const ctx = canvas.getContext("2d");
+    if (!ctx) {
+        console.error("Failed to get 2D context from canvas!");
+        return;
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        ctx.translate(200 - width / 2, 200 - height - (cornerRadius * 10)); // Adjust for radius height
+        const translateY = cornerRadius > 0 ? 200 - height - (cornerRadius * 10) : 200 - height;
+        ctx.translate(200 - width / 2, translateY); // Center and adjust for radius
+        console.log("Canvas translation:", { x: 200 - width / 2, y: translateY });
         try {
             if (partType === "Holed Mounting Plate") {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
@@ -416,3 +429,6 @@ function downloadDXF() {
         document.body.removeChild(link);
     }
 }
+
+// Ensure previewPart is callable (e.g., via button)
+document.getElementById("preview-button") && document.getElementById("preview-button").addEventListener("click", previewPart);
