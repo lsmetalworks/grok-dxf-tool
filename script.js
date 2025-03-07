@@ -193,52 +193,58 @@ const partsLibrary = {
     triangle: {
         name: "Triangle",
         draw: (ctx, width, height, holeSize, cornerRadius = 0) => {
-            const r = cornerRadius * 10;
+            const r = cornerRadius * 10; // Scale radius to canvas units
             const apexX = width / 2;
             const apexY = 0;
 
             ctx.beginPath();
             ctx.moveTo(0, height); // Bottom-left
-            if (r > 0 && r < height / 2 && r < width / 2) { // Cap radius to ensure validity
-                // Calculate center below apex
-                const m = 2 * height / width; // Slope of left side
-                const centerX = apexX;
-                const centerY = r; // Simplified: center at y=r below apex
 
-                // Tangent points via circle-line intersection
+            if (r > 0) {
+                // Center below apex
+                const centerX = apexX;
+                const centerY = r; // Place center r units below apex
+
+                // Left side equation: y = height - (2 * height / width) * x
+                const m = (height - apexY) / (apexX - 0); // Slope
                 const a = 1 + m * m;
                 const b = -2 * centerX - 2 * m * (centerY - height);
                 const c = centerX * centerX + (centerY - height) * (centerY - height) - r * r;
                 const discriminant = b * b - 4 * a * c;
 
+                console.log("Triangle calc:", { r, centerX, centerY, m, a, b, c, discriminant });
+
                 if (discriminant >= 0) {
                     const sqrtDisc = Math.sqrt(discriminant);
-                    const x1 = (-b - sqrtDisc) / (2 * a); // Left tangent x
-                    const y1 = height - m * x1;
-                    const leftTangentX = x1;
-                    const leftTangentY = y1;
+                    // Choose the x closer to the base (larger x for left side)
+                    const x1 = (-b + sqrtDisc) / (2 * a); // Left tangent x (closer to base)
+                    const x2 = (-b - sqrtDisc) / (2 * a);
+                    const leftTangentX = x1 > x2 ? x1 : x2;
+                    const leftTangentY = height - m * leftTangentX;
 
-                    const x2 = centerX + (centerY - y1) / m; // Right tangent x (symmetry)
-                    const rightTangentX = x2;
-                    const rightTangentY = y1;
+                    // Right tangent via symmetry
+                    const rightTangentX = width - leftTangentX;
+                    const rightTangentY = leftTangentY;
 
                     // Arc angles
                     const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
                     const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
 
-                    // Draw with arc
+                    console.log("Tangent points:", { leftTangentX, leftTangentY, rightTangentX, rightTangentY, startAngle, endAngle });
+
                     ctx.lineTo(leftTangentX, leftTangentY);
                     ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
                     ctx.lineTo(width, height);
                 } else {
-                    console.log("Radius too large, reverting to sharp apex:", { r, width, height });
-                    ctx.lineTo(apexX, apexY); // Fallback to sharp apex
+                    console.log("Invalid radius, using sharp apex:", { r, width, height });
+                    ctx.lineTo(apexX, apexY);
                     ctx.lineTo(width, height);
                 }
             } else {
-                ctx.lineTo(apexX, apexY); // Sharp apex if r <= 0 or too large
+                ctx.lineTo(apexX, apexY);
                 ctx.lineTo(width, height);
             }
+
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -248,7 +254,7 @@ const partsLibrary = {
                 ctx.globalCompositeOperation = "destination-out";
                 const holeRadius = (holeSize / 2) * 10;
                 const centroidX = width / 2;
-                const centroidY = height - (height / 3); // Centroid in flipped preview coords
+                const centroidY = height - (height / 3);
                 ctx.beginPath();
                 ctx.arc(centroidX, centroidY, holeRadius, 0, Math.PI * 2);
                 ctx.fill();
@@ -263,11 +269,12 @@ const partsLibrary = {
 
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
             dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0"); // Bottom-left
-            if (r > 0 && r < height / 2 && r < width / 2) {
-                const m = 2 * height / width;
+
+            if (r > 0) {
                 const centerX = apexX;
                 const centerY = height - r; // Center r below apex in DXF coords
 
+                const m = (apexY - 0) / (apexX - 0);
                 const a = 1 + m * m;
                 const b = -2 * centerX - 2 * m * (centerY - height);
                 const c = centerX * centerX + (centerY - height) * (centerY - height) - r * r;
@@ -275,14 +282,13 @@ const partsLibrary = {
 
                 if (discriminant >= 0) {
                     const sqrtDisc = Math.sqrt(discriminant);
-                    const x1 = (-b - sqrtDisc) / (2 * a);
-                    const y1 = height - m * x1;
-                    const leftTangentX = x1;
-                    const leftTangentY = y1;
+                    const x1 = (-b + sqrtDisc) / (2 * a);
+                    const x2 = (-b - sqrtDisc) / (2 * a);
+                    const leftTangentX = x1 > x2 ? x1 : x2;
+                    const leftTangentY = height - m * leftTangentX;
 
-                    const x2 = centerX + (centerY - y1) / m;
-                    const rightTangentX = x2;
-                    const rightTangentY = y1;
+                    const rightTangentX = width - leftTangentX;
+                    const rightTangentY = leftTangentY;
 
                     const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
                     const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
@@ -302,6 +308,7 @@ const partsLibrary = {
             } else {
                 dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
             }
+
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0"); // Bottom-right
             dxf.push("0", "SEQEND");
 
