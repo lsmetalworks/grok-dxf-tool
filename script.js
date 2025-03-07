@@ -203,28 +203,42 @@ const partsLibrary = {
             console.log("Drawing triangle:", { width, height, r, apexX, apexY });
 
             if (r > 0) {
-                // Center calculation for tangency
+                // Center calculation
                 const m = height / (width / 2); // Slope
                 const centerX = apexX;
-                const centerY = r * Math.sqrt(1 + m * m) / m; // Adjust center so distance to side = r
+                const centerY = r / Math.sin(Math.atan(m)); // Distance from apex along bisector
 
-                // Tangent points: perpendicular distance = r
-                const offsetX = r / Math.sqrt(1 + m * m);
-                const offsetY = m * offsetX;
+                // Tangent points: solve circle intersection with sides
+                const a = 1 + m * m;
+                const b = -2 * centerX - 2 * m * (centerY - height);
+                const c = centerX * centerX + (centerY - height) * (centerY - height) - r * r;
+                const discriminant = b * b - 4 * a * c;
 
-                const leftTangentX = apexX - offsetX;
-                const leftTangentY = apexY + offsetY;
-                const rightTangentX = apexX + offsetX;
-                const rightTangentY = apexY + offsetY;
+                console.log("Circle calc:", { a, b, c, discriminant });
 
-                const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
-                const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
+                if (discriminant >= 0) {
+                    const sqrtDisc = Math.sqrt(discriminant);
+                    const x1 = (-b - sqrtDisc) / (2 * a); // Closer to apex
+                    const x2 = (-b + sqrtDisc) / (2 * a); // Closer to base
+                    const leftTangentX = x2; // Use base-closer point
+                    const leftTangentY = height - m * leftTangentX;
 
-                console.log("Radius applied:", { centerX, centerY, leftTangentX, leftTangentY, rightTangentX, rightTangentY, startAngle, endAngle });
+                    const rightTangentX = width - leftTangentX;
+                    const rightTangentY = leftTangentY;
 
-                ctx.lineTo(leftTangentX, leftTangentY);
-                ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
-                ctx.lineTo(width, height);
+                    const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
+                    const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
+
+                    console.log("Tangent points:", { leftTangentX, leftTangentY, rightTangentX, rightTangentY, centerX, centerY, startAngle, endAngle });
+
+                    ctx.lineTo(leftTangentX, leftTangentY);
+                    ctx.arc(centerX, centerY, r, startAngle, endAngle, false);
+                    ctx.lineTo(width, height);
+                } else {
+                    console.log("Invalid radius, using sharp apex:", { r, width, height });
+                    ctx.lineTo(apexX, apexY);
+                    ctx.lineTo(width, height);
+                }
             } else {
                 console.log("No radius, sharp apex");
                 ctx.lineTo(apexX, apexY);
@@ -258,28 +272,39 @@ const partsLibrary = {
             if (r > 0) {
                 const m = height / (width / 2);
                 const centerX = apexX;
-                const centerY = height - (r * Math.sqrt(1 + m * m) / m);
+                const centerY = height - (r / Math.sin(Math.atan(m)));
 
-                const offsetX = r / Math.sqrt(1 + m * m);
-                const offsetY = m * offsetX;
+                const a = 1 + m * m;
+                const b = -2 * centerX - 2 * m * (centerY - height);
+                const c = centerX * centerX + (centerY - height) * (centerY - height) - r * r;
+                const discriminant = b * b - 4 * a * c;
 
-                const leftTangentX = apexX - offsetX;
-                const leftTangentY = apexY - offsetY;
-                const rightTangentX = apexX + offsetX;
-                const rightTangentY = apexY - offsetY;
+                if (discriminant >= 0) {
+                    const sqrtDisc = Math.sqrt(discriminant);
+                    const x1 = (-b - sqrtDisc) / (2 * a);
+                    const x2 = (-b + sqrtDisc) / (2 * a);
+                    const leftTangentX = x2;
+                    const leftTangentY = height - m * leftTangentX;
 
-                const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
-                const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
+                    const rightTangentX = width - leftTangentX;
+                    const rightTangentY = leftTangentY;
 
-                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
-                const steps = 8;
-                for (let i = 0; i <= steps; i++) {
-                    const angle = startAngle + (endAngle - startAngle) * i / steps;
-                    const x = centerX + r * Math.cos(angle);
-                    const y = centerY + r * Math.sin(angle);
-                    dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+                    const startAngle = Math.atan2(leftTangentY - centerY, leftTangentX - centerX);
+                    const endAngle = Math.atan2(rightTangentY - centerY, rightTangentX - centerX);
+
+                    dxf.push("0", "VERTEX", "8", "0", "10", leftTangentX.toString(), "20", leftTangentY.toString());
+                    const steps = 8;
+                    for (let i = 0; i <= steps; i++) {
+                        const angle = startAngle + (endAngle - startAngle) * i / steps;
+                        const x = centerX + r * Math.cos(angle);
+                        const y = centerY + r * Math.sin(angle);
+                        dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+                    }
+                    dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString());
+                } else {
+                    console.log("DXF: Invalid radius, using sharp apex:", { r, width, height });
+                    dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
                 }
-                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentX.toString(), "20", rightTangentY.toString());
             } else {
                 dxf.push("0", "VERTEX", "8", "0", "10", apexX.toString(), "20", apexY.toString());
             }
@@ -293,7 +318,7 @@ const partsLibrary = {
                 const centroidY = height / 3;
                 dxf.push(
                     "0", "CIRCLE",
-                    "8", "0",
+                    "8 "0",
                     "10", centroidX.toString(),
                     "20", centroidY.toString(),
                     "40", holeRadius.toString()
