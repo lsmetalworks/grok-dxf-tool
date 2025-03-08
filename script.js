@@ -193,48 +193,49 @@ const partsLibrary = {
         draw: (ctx, width, height, holeSize, cornerRadius = 0) => {
             const r = cornerRadius * 10; // Canvas units
             const topWidth = width * 0.2; // Short top side (20% of base width)
-            const topY = height; // Top at specified height
+            const baseY = height; // Base at bottom
+            const topY = 0; // Top at y=0 (flipped)
             const topLeftX = (width - topWidth) / 2;
             const topRightX = topLeftX + topWidth;
 
             ctx.beginPath();
-            ctx.moveTo(0, 0); // Bottom-left
+            ctx.moveTo(0, baseY); // Bottom-left (base)
 
-            console.log("Drawing trapezoid:", { width, height, r, topWidth, topY, topLeftX, topRightX });
+            console.log("Drawing trapezoid:", { width, height, r, topWidth, baseY, topY, topLeftX, topRightX });
 
-            if (r > 0) { // Apply radius if positive, no upper limit for testing
+            if (r > 0) {
                 console.log("Applying radius:", r);
-                // Left arc center (above top)
+                // Left arc center (above top, now at y=0)
                 const leftCenterX = topLeftX + r;
-                const leftCenterY = topY + r;
+                const leftCenterY = topY - r; // Below topY (upward in canvas)
                 const leftTangentXSide = topLeftX; // Start at top-left corner
                 const leftTangentYSide = topY;
                 const leftTangentXTop = leftCenterX;
-                const leftTangentYTop = topY + r; // Peak of arc
+                const leftTangentYTop = topY - r; // Peak of arc (upward)
 
                 // Right arc center (above top)
                 const rightCenterX = topRightX - r;
-                const rightCenterY = topY + r;
+                const rightCenterY = topY - r;
                 const rightTangentXSide = topRightX; // Start at top-right corner
                 const rightTangentYSide = topY;
                 const rightTangentXTop = rightCenterX;
-                const rightTangentYTop = topY + r; // Peak of arc
+                const rightTangentYTop = topY - r; // Peak of arc
 
                 console.log("Tangent points:", {
                     leftTangentXSide, leftTangentYSide, leftTangentXTop, leftTangentYTop,
                     rightTangentXSide, rightTangentYSide, rightTangentXTop, rightTangentYTop
                 });
 
-                ctx.lineTo(leftTangentXSide, leftTangentYSide);
-                ctx.arc(leftCenterX, leftCenterY, r, Math.PI, 3 * Math.PI / 2, false); // 90° outward arc
-                ctx.lineTo(rightTangentXSide, rightTangentYSide);
-                ctx.arc(rightCenterX, rightCenterY, r, -Math.PI / 2, 0, false); // 90° outward arc
-                ctx.lineTo(width, 0);
+                ctx.lineTo(width, baseY); // Base right
+                ctx.lineTo(rightTangentXSide, rightTangentYSide); // Top right
+                ctx.arc(rightCenterX, rightCenterY, r, 0, Math.PI / 2, false); // 90° outward arc (right to up)
+                ctx.lineTo(leftTangentXSide, leftTangentYSide); // Top left
+                ctx.arc(leftCenterX, leftCenterY, r, Math.PI / 2, Math.PI, false); // 90° outward arc (up to left)
             } else {
                 console.log("No radius, flat top");
-                ctx.lineTo(topLeftX, topY);
-                ctx.lineTo(topRightX, topY);
-                ctx.lineTo(width, 0);
+                ctx.lineTo(width, baseY); // Base right
+                ctx.lineTo(topRightX, topY); // Top right
+                ctx.lineTo(topLeftX, topY); // Top left
             }
 
             ctx.closePath();
@@ -245,7 +246,7 @@ const partsLibrary = {
                 ctx.globalCompositeOperation = "destination-out";
                 const holeRadius = (holeSize / 2) * 10;
                 const centroidX = width / 2;
-                const centroidY = height / 3;
+                const centroidY = height / 3; // Still relative to base at bottom
                 ctx.beginPath();
                 ctx.arc(centroidX, centroidY, holeRadius, 0, Math.PI * 2);
                 ctx.fill();
@@ -268,39 +269,40 @@ const partsLibrary = {
 
             const r = cornerRadius; // DXF in inches
             const topWidth = width * 0.2;
-            const topY = height;
+            const baseY = height;
+            const topY = 0;
             const topLeftX = (width - topWidth) / 2;
             const topRightX = topLeftX + topWidth;
 
-            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0");
+            dxf.push("0", "VERTEX", "8", "0", "10", "0.0", "20", baseY.toString()); // Base left
 
             if (r > 0) {
                 const leftCenterX = topLeftX + r;
-                const leftCenterY = topY + r;
+                const leftCenterY = topY - r;
                 const leftTangentXSide = topLeftX;
                 const leftTangentYSide = topY;
                 const leftTangentXTop = leftCenterX;
-                const leftTangentYTop = topY + r;
+                const leftTangentYTop = topY - r;
 
                 const rightCenterX = topRightX - r;
-                const rightCenterY = topY + r;
+                const rightCenterY = topY - r;
                 const rightTangentXSide = topRightX;
                 const rightTangentYSide = topY;
                 const rightTangentXTop = rightCenterX;
-                const rightTangentYTop = topY + r;
+                const rightTangentYTop = topY - r;
 
-                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXSide.toString(), "20", leftTangentYSide.toString());
-                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.41421356237309515"); // Bulge for 90° arc
+                dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", baseY.toString()); // Base right
                 dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXSide.toString(), "20", rightTangentYSide.toString());
-                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString(), "42", "-0.41421356237309515"); // Bulge for 90° arc
+                dxf.push("0", "VERTEX", "8", "0", "10", rightTangentXTop.toString(), "20", rightTangentYTop.toString(), "42", "-0.41421356237309515"); // 90° arc
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXSide.toString(), "20", leftTangentYSide.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", leftTangentXTop.toString(), "20", leftTangentYTop.toString(), "42", "-0.41421356237309515"); // 90° arc
             } else {
-                dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", baseY.toString());
                 dxf.push("0", "VERTEX", "8", "0", "10", topRightX.toString(), "20", topY.toString());
+                dxf.push("0", "VERTEX", "8", "0", "10", topLeftX.toString(), "20", topY.toString());
             }
 
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0");
             dxf.push("0", "SEQEND", "0", "ENDSEC", "0", "EOF");
-
             return dxf.join("\n");
         }
     }
@@ -371,8 +373,8 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        const translateY = cornerRadius > 0 ? 200 - height - (cornerRadius * 10) : 200 - height;
-        ctx.translate(200 - width / 2, translateY); // Center and adjust for radius
+        const translateY = 200 - height; // Base at bottom, top moves up
+        ctx.translate(200 - width / 2, translateY);
         console.log("Canvas translation:", { x: 200 - width / 2, y: translateY });
         try {
             if (partType === "Holed Mounting Plate") {
