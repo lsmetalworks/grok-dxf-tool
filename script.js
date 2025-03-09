@@ -261,8 +261,9 @@ const partsLibrary = {
             const tabWidth = (width - tubeDiameter * 10) / 2; // Remaining width split into tabs
             const holeRadius = (holeSize / 2) * 10;
 
+            // Validation moved to previewPart, but log for debugging
             if (tabWidth <= 0) {
-                console.error("Tab width must be positive. Increase width or decrease tube diameter.");
+                console.log("Tab width non-positive, skipping draw:", { tabWidth });
                 return;
             }
 
@@ -306,7 +307,7 @@ const partsLibrary = {
             const holeRadius = holeSize / 2;
 
             if (tabWidth <= 0) {
-                console.error("Tab width must be positive in DXF. Increase width or decrease tube diameter.");
+                console.log("Tab width non-positive in DXF, returning empty:", { tabWidth });
                 return "";
             }
 
@@ -449,7 +450,7 @@ function previewPart() {
         ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
         (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) || 
         (partType === "Saddle Bracket" && (!tubeDiameter || isNaN(tubeDiameter) || tubeDiameter <= 0 || width <= tubeDiameter * 10))) {
-        alert("Please enter all required fields. For Saddle Bracket, width must be greater than tube diameter.");
+        alert("Please enter valid values. For Saddle Bracket, width must be greater than tube diameter (in canvas units: width > tubeDiameter * 10).");
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius, tubeDiameter });
         return;
     }
@@ -511,7 +512,7 @@ function downloadDXF() {
         ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
         (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) || 
         (partType === "Saddle Bracket" && (!tubeDiameter || isNaN(tubeDiameter) || tubeDiameter <= 0 || width <= tubeDiameter))) {
-        alert("Please enter all required fields. For Saddle Bracket, width must be greater than tube diameter.");
+        alert("Please enter valid values. For Saddle Bracket, width must be greater than tube diameter.");
         return;
     }
 
@@ -521,12 +522,16 @@ function downloadDXF() {
                           partType === "Circular Bracket" ? part.toDXF(width, height, holeSize, holeInset) :
                           partType === "Saddle Bracket" ? part.toDXF(width, height, holeSize, tubeDiameter) :
                           part.toDXF(width, height);
-        const blob = new Blob([dxfContent], { type: "application/dxf" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `${partType.toLowerCase()}.dxf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (dxfContent) { // Check for empty string from early return
+            const blob = new Blob([dxfContent], { type: "application/dxf" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `${partType.toLowerCase()}.dxf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            console.log("DXF generation skipped due to invalid parameters.");
+        }
     }
 }
