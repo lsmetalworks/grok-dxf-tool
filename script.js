@@ -257,9 +257,14 @@ const partsLibrary = {
     saddleBracket: {
         name: "Saddle Bracket",
         draw: (ctx, width, height, holeSize, tubeDiameter) => {
-            const tubeRadius = tubeDiameter * 5; // Half of tubeDiameter in canvas units (10x scale)
-            const tabWidth = (width - tubeDiameter * 10) / 2; // Remaining width split into two tabs
+            const tubeRadius = tubeDiameter * 5; // Canvas units
+            const tabWidth = (width - tubeDiameter * 10) / 2; // Remaining width split into tabs
             const holeRadius = (holeSize / 2) * 10;
+
+            if (tabWidth <= 0) {
+                console.error("Tab width must be positive. Increase width or decrease tube diameter.");
+                return;
+            }
 
             ctx.beginPath();
             // Left tab
@@ -274,16 +279,15 @@ const partsLibrary = {
             ctx.lineTo(width, height);
             ctx.lineTo(width - tabWidth, height);
             ctx.closePath();
-            // Saddle (arc)
+            // Saddle arc
             ctx.moveTo(tabWidth, height);
-            ctx.arc(width / 2, height + tubeRadius, tubeRadius, Math.PI, 0, false); // Top half of tube
+            ctx.arc(width / 2, height + tubeRadius, tubeRadius, Math.PI, 0, false);
             ctx.lineTo(width - tabWidth, height);
             ctx.fillStyle = "#666";
             ctx.fill();
 
             if (holeSize > 0 && tabWidth > holeRadius * 2) {
                 ctx.globalCompositeOperation = "destination-out";
-                // Holes in tabs, centered horizontally and vertically
                 const holeY = height / 2;
                 ctx.beginPath();
                 ctx.arc(tabWidth / 2, holeY, holeRadius, 0, Math.PI * 2); // Left tab hole
@@ -300,6 +304,11 @@ const partsLibrary = {
             const tubeRadius = tubeDiameter / 2;
             const tabWidth = (width - tubeDiameter) / 2;
             const holeRadius = holeSize / 2;
+
+            if (tabWidth <= 0) {
+                console.error("Tab width must be positive in DXF. Increase width or decrease tube diameter.");
+                return "";
+            }
 
             let dxf = [
                 "0", "SECTION",
@@ -346,8 +355,8 @@ const partsLibrary = {
             if (holeSize > 0 && tabWidth > holeRadius * 2) {
                 const holeY = height / 2;
                 dxf.push(
-                    "0", "CIRCLE", "8", "0", "10", (tabWidth / 2).toString(), "20", holeY.toString(), "40", holeRadius.toString(), // Left hole
-                    "0", "CIRCLE", "8", "0", "10", (width - tabWidth / 2).toString(), "20", holeY.toString(), "40", holeRadius.toString() // Right hole
+                    "0", "CIRCLE", "8", "0", "10", (tabWidth / 2).toString(), "20", holeY.toString(), "40", holeRadius.toString(),
+                    "0", "CIRCLE", "8", "0", "10", (width - tabWidth / 2).toString(), "20", holeY.toString(), "40", holeRadius.toString()
                 );
             }
 
@@ -434,13 +443,13 @@ function previewPart() {
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius, tubeDiameter });
 
-    if (!width || 
-        (partType !== "Circular Bracket" && (!height || isNaN(height))) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Saddle Bracket") && (!holeSize || isNaN(holeSize))) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset))) || 
-        (partType === "Holed Mounting Plate" && isNaN(cornerRadius)) || 
-        (partType === "Saddle Bracket" && (!tubeDiameter || isNaN(tubeDiameter)))) {
-        alert("Please enter all required fields. Check console for details.");
+    if (!width || width <= 0 || 
+        (partType !== "Circular Bracket" && (!height || isNaN(height) || height <= 0)) || 
+        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Saddle Bracket") && (!holeSize || isNaN(holeSize) || holeSize <= 0)) || 
+        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
+        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) || 
+        (partType === "Saddle Bracket" && (!tubeDiameter || isNaN(tubeDiameter) || tubeDiameter <= 0 || width <= tubeDiameter * 10))) {
+        alert("Please enter all required fields. For Saddle Bracket, width must be greater than tube diameter.");
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius, tubeDiameter });
         return;
     }
@@ -463,7 +472,7 @@ function previewPart() {
     if (part) {
         ctx.save();
         const translateX = 200 - width / 2;
-        const translateY = partType === "Circular Bracket" ? 200 - width / 2 : 200 - height - (partType === "Saddle Bracket" ? tubeDiameter * 5 : 0); // Adjust for saddle
+        const translateY = partType === "Circular Bracket" ? 200 - width / 2 : 200 - height - (partType === "Saddle Bracket" ? tubeDiameter * 5 : 0);
         ctx.translate(translateX, translateY);
         console.log("Canvas translation:", { x: translateX, y: translateY });
         try {
@@ -496,13 +505,13 @@ function downloadDXF() {
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
     const tubeDiameter = partType === "Saddle Bracket" ? parseFloat(document.getElementById("tubeDiameter").value || 2) : 0;
 
-    if (!width || 
-        (partType !== "Circular Bracket" && (!height || isNaN(height))) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Saddle Bracket") && (!holeSize || isNaN(holeSize))) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset))) || 
-        (partType === "Holed Mounting Plate" && isNaN(cornerRadius)) || 
-        (partType === "Saddle Bracket" && (!tubeDiameter || isNaN(tubeDiameter)))) {
-        alert("Please enter all required fields.");
+    if (!width || width <= 0 || 
+        (partType !== "Circular Bracket" && (!height || isNaN(height) || height <= 0)) || 
+        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Saddle Bracket") && (!holeSize || isNaN(holeSize) || holeSize <= 0)) || 
+        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
+        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) || 
+        (partType === "Saddle Bracket" && (!tubeDiameter || isNaN(tubeDiameter) || tubeDiameter <= 0 || width <= tubeDiameter))) {
+        alert("Please enter all required fields. For Saddle Bracket, width must be greater than tube diameter.");
         return;
     }
 
