@@ -253,9 +253,7 @@ const partsLibrary = {
             dxf.push("0", "ENDSEC", "0", "EOF");
             return dxf.join("\n");
         }
-    }
-};
-},
+    },
     rollCageBracket: {
         name: "Universal Roll Cage Bracket",
         draw: (ctx, width, height, holeSize, holeInset, boltPattern, pipeDiameter) => {
