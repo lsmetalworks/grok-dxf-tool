@@ -1,4 +1,4 @@
-// Parts library with saddle bracket for round tubes
+// Parts library with circular bracket and 4-bolt pattern
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -253,101 +253,104 @@ const partsLibrary = {
             dxf.push("0", "ENDSEC", "0", "EOF");
             return dxf.join("\n");
         }
-    },
-    saddleBracket: {
-        name: "Saddle Bracket",
-        draw: (ctx, tabWidth, height, holeSize, tubeDiameter) => {
-            const bracketWidth = (tubeDiameter + 2 * tabWidth) * 10; // Total width in canvas units
-            const tubeRadius = tubeDiameter * 5; // Canvas units
-            const tabWidthCanvas = tabWidth * 10;
-            const holeRadius = (holeSize / 2) * 10;
-
+    }
+};
+},
+    rollCageBracket: {
+        name: "Universal Roll Cage Bracket",
+        draw: (ctx, width, height, holeSize, holeInset, boltPattern, pipeDiameter) => {
             ctx.beginPath();
-            // Left tab
-            ctx.moveTo(0, 0);
-            ctx.lineTo(tabWidthCanvas, 0);
-            ctx.lineTo(tabWidthCanvas, height);
-            ctx.lineTo(0, height);
-            ctx.closePath();
-            // Right tab
-            ctx.moveTo(bracketWidth - tabWidthCanvas, 0);
-            ctx.lineTo(bracketWidth, 0);
-            ctx.lineTo(bracketWidth, height);
-            ctx.lineTo(bracketWidth - tabWidthCanvas, height);
-            ctx.closePath();
-            // Saddle arc
-            ctx.moveTo(tabWidthCanvas, height);
-            ctx.arc(bracketWidth / 2, height + tubeRadius, tubeRadius, Math.PI, 0, false);
-            ctx.lineTo(bracketWidth - tabWidthCanvas, height);
+            ctx.rect(0, 0, width, height);
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            if (holeSize > 0 && tabWidthCanvas > holeRadius * 2) {
-                ctx.globalCompositeOperation = "destination-out";
-                const holeY = height / 2;
-                ctx.beginPath();
-                ctx.arc(tabWidthCanvas / 2, holeY, holeRadius, 0, Math.PI * 2); // Left tab hole
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(bracketWidth - tabWidthCanvas / 2, holeY, holeRadius, 0, Math.PI * 2); // Right tab hole
-                ctx.fill();
-                ctx.globalCompositeOperation = "source-over";
+            ctx.globalCompositeOperation = "destination-out";
+            
+            const boltRadius = (holeSize / 2) * 10;
+            const inset = holeInset * 10;
+            let holeCenters = [];
+
+            if (boltPattern === 4) {
+                holeCenters = [
+                    [inset, inset],
+                    [width - inset, inset],
+                    [width - inset, height - inset],
+                    [inset, height - inset]
+                ];
+            } else if (boltPattern === 6) {
+                holeCenters = [
+                    [width / 2, inset],
+                    [width - inset, height / 2],
+                    [width / 2, height - inset],
+                    [inset, height / 2],
+                    [inset, inset],
+                    [width - inset, inset]
+                ];
             }
 
-            console.log("Drawing saddle bracket:", { tabWidth, height, tubeDiameter, holeSize, bracketWidth, tubeRadius });
+            holeCenters.forEach(([x, y]) => {
+                ctx.beginPath();
+                ctx.arc(x, y, boltRadius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            if (pipeDiameter > 0) {
+                const pipeRadius = (pipeDiameter / 2) * 10;
+                ctx.beginPath();
+                ctx.arc(width / 2, height / 2, pipeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.globalCompositeOperation = "source-over";
         },
-        toDXF: (tabWidth, height, holeSize, tubeDiameter) => {
-            const bracketWidth = tubeDiameter + 2 * tabWidth; // Total width in inches
-            const tubeRadius = tubeDiameter / 2;
-            const holeRadius = holeSize / 2;
-
-            let dxf = [
-                "0", "SECTION",
-                "2", "ENTITIES"
-            ];
-
-            // Left tab
+        toDXF: (width, height, holeSize, holeInset, boltPattern, pipeDiameter) => {
+            let dxf = ["0", "SECTION", "2", "ENTITIES"];
             dxf.push(
-                "0", "POLYLINE",
-                "8", "0",
-                "66", "1",
+                "0", "POLYLINE", "8", "0", "66", "1",
                 "0", "VERTEX", "8", "0", "10", "0.0", "20", "0.0",
-                "0", "VERTEX", "8", "0", "10", tabWidth.toString(), "20", "0.0",
-                "0", "VERTEX", "8", "0", "10", tabWidth.toString(), "20", height.toString(),
+                "0", "VERTEX", "8", "0", "10", width.toString(), "20", "0.0",
+                "0", "VERTEX", "8", "0", "10", width.toString(), "20", height.toString(),
                 "0", "VERTEX", "8", "0", "10", "0.0", "20", height.toString(),
                 "0", "SEQEND"
             );
+            const inset = holeInset;
+            let holeCenters = [];
 
-            // Right tab
-            dxf.push(
-                "0", "POLYLINE",
-                "8", "0",
-                "66", "1",
-                "0", "VERTEX", "8", "0", "10", (bracketWidth - tabWidth).toString(), "20", "0.0",
-                "0", "VERTEX", "8", "0", "10", bracketWidth.toString(), "20", "0.0",
-                "0", "VERTEX", "8", "0", "10", bracketWidth.toString(), "20", height.toString(),
-                "0", "VERTEX", "8", "0", "10", (bracketWidth - tabWidth).toString(), "20", height.toString(),
-                "0", "SEQEND"
-            );
-
-            // Saddle arc (approximated with polyline)
-            const steps = 16;
-            dxf.push("0", "POLYLINE", "8", "0", "66", "1");
-            dxf.push("0", "VERTEX", "8", "0", "10", tabWidth.toString(), "20", height.toString());
-            for (let i = 0; i <= steps; i++) {
-                const angle = Math.PI + (Math.PI * i) / steps;
-                const x = bracketWidth / 2 + tubeRadius * Math.cos(angle);
-                const y = height + tubeRadius + tubeRadius * Math.sin(angle);
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+            if (boltPattern === 4) {
+                holeCenters = [
+                    [inset, inset],
+                    [width - inset, inset],
+                    [width - inset, height - inset],
+                    [inset, height - inset]
+                ];
+            } else if (boltPattern === 6) {
+                holeCenters = [
+                    [width / 2, inset],
+                    [width - inset, height / 2],
+                    [width / 2, height - inset],
+                    [inset, height / 2],
+                    [inset, inset],
+                    [width - inset, inset]
+                ];
             }
-            dxf.push("0", "VERTEX", "8", "0", "10", (bracketWidth - tabWidth).toString(), "20", height.toString());
-            dxf.push("0", "SEQEND");
 
-            if (holeSize > 0 && tabWidth > holeRadius * 2) {
-                const holeY = height / 2;
+            holeCenters.forEach(([x, y]) => {
                 dxf.push(
-                    "0", "CIRCLE", "8", "0", "10", (tabWidth / 2).toString(), "20", holeY.toString(), "40", holeRadius.toString(),
-                    "0", "CIRCLE", "8", "0", "10", (bracketWidth - tabWidth / 2).toString(), "20", holeY.toString(), "40", holeRadius.toString()
+                    "0", "CIRCLE",
+                    "8", "0",
+                    "10", x.toString(),
+                    "20", y.toString(),
+                    "40", (holeSize / 2).toString()
+                );
+            });
+
+            if (pipeDiameter > 0) {
+                dxf.push(
+                    "0", "CIRCLE",
+                    "8", "0",
+                    "10", (width / 2).toString(),
+                    "20", (height / 2).toString(),
+                    "40", (pipeDiameter / 2).toString()
                 );
             }
 
@@ -356,7 +359,6 @@ const partsLibrary = {
         }
     }
 };
-
 // Ensure DOM is loaded before adding event listeners
 document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM fully loaded, setting up event listeners");
@@ -382,43 +384,22 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("part-type").textContent = partsLibrary[partType].name;
             document.getElementById("width").value = "";
             document.getElementById("height").value = "";
-            document.getElementById("hole-options").style.display = (partType === "holedPlate" || partType === "circleBracket" || partType === "saddleBracket") ? "block" : "none";
+            document.getElementById("hole-options").style.display = (partType === "holedPlate" || partType === "circleBracket") ? "block" : "none";
             if (partType === "holedPlate") {
                 document.getElementById("holeSize").value = "0.25";
                 document.getElementById("holeInset").value = "0.5";
                 document.getElementById("cornerRadius").value = "0";
-                document.getElementById("tubeDiameter").value = "2";
                 document.getElementById("holeInset").style.display = "block";
                 document.getElementById("cornerRadius").style.display = "block";
-                document.getElementById("tubeDiameter").style.display = "none";
                 document.getElementById("holeInset").previousElementSibling.style.display = "block";
                 document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
-                document.getElementById("tubeDiameter").previousElementSibling.style.display = "none";
             } else if (partType === "circleBracket") {
                 document.getElementById("holeSize").value = "0.25";
                 document.getElementById("holeInset").value = "0.5";
-                document.getElementById("cornerRadius").value = "0";
-                document.getElementById("tubeDiameter").value = "2";
                 document.getElementById("cornerRadius").style.display = "none";
                 document.getElementById("holeInset").style.display = "block";
-                document.getElementById("tubeDiameter").style.display = "none";
                 document.getElementById("holeInset").previousElementSibling.style.display = "block";
                 document.getElementById("cornerRadius").previousElementSibling.style.display = "none";
-                document.getElementById("tubeDiameter").previousElementSibling.style.display = "none";
-            } else if (partType === "saddleBracket") {
-                document.getElementById("width").previousElementSibling.textContent = "Tab Width (in): "; // Rename label
-                document.getElementById("holeSize").value = "0.25";
-                document.getElementById("holeInset").value = "0.5";
-                document.getElementById("cornerRadius").value = "0";
-                document.getElementById("tubeDiameter").value = "2";
-                document.getElementById("holeInset").style.display = "none";
-                document.getElementById("cornerRadius").style.display = "none";
-                document.getElementById("tubeDiameter").style.display = "block";
-                document.getElementById("holeInset").previousElementSibling.style.display = "none";
-                document.getElementById("cornerRadius").previousElementSibling.style.display = "none";
-                document.getElementById("tubeDiameter").previousElementSibling.style.display = "block";
-            } else {
-                document.getElementById("width").previousElementSibling.textContent = "Width (in): "; // Reset label for other parts
             }
             console.log("Part selected:", partType);
         });
@@ -428,26 +409,21 @@ document.addEventListener("DOMContentLoaded", () => {
 // Preview the part on canvas
 function previewPart() {
     const partType = document.getElementById("part-type").textContent;
-    const widthInput = parseFloat(document.getElementById("width").value); // Width or tabWidth depending on part
-    const height = partType !== "Circular Bracket" ? parseFloat(document.getElementById("height").value) * 10 : widthInput * 10;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Saddle Bracket") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
+    const width = parseFloat(document.getElementById("width").value) * 10; // Canvas units
+    const height = partType !== "Circular Bracket" ? parseFloat(document.getElementById("height").value) * 10 : width;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
-    const tubeDiameter = partType === "Saddle Bracket" ? parseFloat(document.getElementById("tubeDiameter").value || 2) : 0;
 
-    // For saddleBracket, widthInput is tabWidth; calculate total bracketWidth
-    const width = partType === "Saddle Bracket" ? (tubeDiameter + 2 * widthInput) * 10 : widthInput * 10;
+    console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
 
-    console.log("Previewing:", { partType, widthInput, width, height, holeSize, holeInset, cornerRadius, tubeDiameter });
-
-    if (!widthInput || widthInput <= 0 || 
-        (partType !== "Circular Bracket" && (!height || isNaN(height) || height <= 0)) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Saddle Bracket") && (!holeSize || isNaN(holeSize) || holeSize <= 0)) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
-        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) || 
-        (partType === "Saddle Bracket" && (!tubeDiameter || isNaN(tubeDiameter) || tubeDiameter <= 0))) {
-        alert("Please enter valid positive values for all required fields.");
-        console.log("Validation failed:", { widthInput, height, holeSize, holeInset, cornerRadius, tubeDiameter });
+    if (!width || 
+        (partType !== "Circular Bracket" && (!height || isNaN(height))) || 
+        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeSize || isNaN(holeSize))) || 
+        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset))) || 
+        (partType === "Holed Mounting Plate" && isNaN(cornerRadius))) {
+        alert("Please enter all required fields. Check console for details.");
+        console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
         return;
     }
 
@@ -468,8 +444,8 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        const translateX = 200 - width / 2;
-        const translateY = partType === "Circular Bracket" ? 200 - width / 2 : 200 - height - (partType === "Saddle Bracket" ? tubeDiameter * 5 : 0);
+        const translateX = 200 - width / 2; // Center horizontally
+        const translateY = partType === "Circular Bracket" ? 200 - width / 2 : 200 - height; // Center circle, bottom for others
         ctx.translate(translateX, translateY);
         console.log("Canvas translation:", { x: translateX, y: translateY });
         try {
@@ -477,8 +453,6 @@ function previewPart() {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
             } else if (partType === "Circular Bracket") {
                 part.draw(ctx, width, height, holeSize, holeInset);
-            } else if (partType === "Saddle Bracket") {
-                part.draw(ctx, widthInput * 10, height, holeSize, tubeDiameter); // Pass tabWidth in canvas units
             } else {
                 part.draw(ctx, width, height);
             }
@@ -495,23 +469,18 @@ function previewPart() {
 // Download DXF file
 function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
-    const widthInput = parseFloat(document.getElementById("width").value);
-    const height = partType !== "Circular Bracket" ? parseFloat(document.getElementById("height").value) : widthInput;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Saddle Bracket") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
+    const width = parseFloat(document.getElementById("width").value); // DXF in inches
+    const height = partType !== "Circular Bracket" ? parseFloat(document.getElementById("height").value) : width;
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
-    const tubeDiameter = partType === "Saddle Bracket" ? parseFloat(document.getElementById("tubeDiameter").value || 2) : 0;
 
-    // For saddleBracket, widthInput is tabWidth; calculate total bracketWidth
-    const width = partType === "Saddle Bracket" ? tubeDiameter + 2 * widthInput : widthInput;
-
-    if (!widthInput || widthInput <= 0 || 
-        (partType !== "Circular Bracket" && (!height || isNaN(height) || height <= 0)) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Saddle Bracket") && (!holeSize || isNaN(holeSize) || holeSize <= 0)) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
-        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) || 
-        (partType === "Saddle Bracket" && (!tubeDiameter || isNaN(tubeDiameter) || tubeDiameter <= 0))) {
-        alert("Please enter valid positive values for all required fields.");
+    if (!width || 
+        (partType !== "Circular Bracket" && (!height || isNaN(height))) || 
+        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeSize || isNaN(holeSize))) || 
+        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset))) || 
+        (partType === "Holed Mounting Plate" && isNaN(cornerRadius))) {
+        alert("Please enter all required fields.");
         return;
     }
 
@@ -519,18 +488,13 @@ function downloadDXF() {
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
                           partType === "Circular Bracket" ? part.toDXF(width, height, holeSize, holeInset) :
-                          partType === "Saddle Bracket" ? part.toDXF(widthInput, height, holeSize, tubeDiameter) :
                           part.toDXF(width, height);
-        if (dxfContent) {
-            const blob = new Blob([dxfContent], { type: "application/dxf" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `${partType.toLowerCase()}.dxf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else {
-            console.log("DXF generation skipped due to invalid parameters.");
-        }
+        const blob = new Blob([dxfContent], { type: "application/dxf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${partType.toLowerCase()}.dxf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 }
