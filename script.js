@@ -263,6 +263,16 @@ const partsLibrary = {
             const scaleX = width / originalWidth;
             const scaleY = height / originalHeight;
 
+            // Center of the bracket in original coordinates
+            const centerX = 0; // Symmetric around x = 0
+            const centerY = (2.19 + (-26.60)) / 2; // Midpoint: -12.205
+
+            ctx.save();
+            // Translate to center, rotate 180 degrees, translate back
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(Math.PI); // 180 degrees
+            ctx.translate(-width / 2, -height / 2);
+
             ctx.beginPath();
             const vertices = [
                 [12.51, 2.19],   // Top right (intended top)
@@ -272,23 +282,25 @@ const partsLibrary = {
                 [-17.45, -26.06], // Bottom left outer
                 [-12.51, 2.19]   // Top left
             ];
-            // Flip y-coordinates for canvas (positive-y-down)
-            ctx.moveTo(vertices[0][0] * scaleX, height - (vertices[0][1] + 26.60) * scaleY);
+            ctx.moveTo(vertices[0][0] * scaleX, (vertices[0][1] - centerY) * scaleY + height / 2);
             for (let i = 1; i < vertices.length; i++) {
-                ctx.lineTo(vertices[i][0] * scaleX, height - (vertices[i][1] + 26.60) * scaleY);
+                ctx.lineTo(vertices[i][0] * scaleX, (vertices[i][1] - centerY) * scaleY + height / 2);
             }
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Adjustable center hole, flipped y-coordinate
+            // Adjustable center hole, rotated
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10; // Canvas units
-            const adjustedHoleY = height - (holeY + 26.60) * scaleY; // Flip and shift
+            const rotatedHoleX = -holeX * 10; // Rotate 180: negate x
+            const rotatedHoleY = -holeY * 10; // Rotate 180: negate y
             ctx.beginPath();
-            ctx.arc(holeX * 10, adjustedHoleY, holeRadius, 0, Math.PI * 2);
+            ctx.arc(rotatedHoleX, rotatedHoleY + height / 2 - centerY * scaleY, holeRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
+
+            ctx.restore();
         },
         toDXF: (width, height, holeSize, holeX, holeY) => {
             const originalWidth = 34.9;
