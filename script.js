@@ -265,26 +265,28 @@ const partsLibrary = {
 
             ctx.beginPath();
             const vertices = [
-                [12.51, 2.19],   // Top right
+                [12.51, 2.19],   // Top right (intended top)
                 [17.45, -26.06], // Bottom right outer
                 [16.06, -26.60], // Bottom right inner
                 [-16.06, -26.60], // Bottom left inner
                 [-17.45, -26.06], // Bottom left outer
                 [-12.51, 2.19]   // Top left
             ];
-            ctx.moveTo(vertices[0][0] * scaleX, vertices[0][1] * scaleY);
+            // Flip y-coordinates for canvas (positive-y-down)
+            ctx.moveTo(vertices[0][0] * scaleX, height - (vertices[0][1] + 26.60) * scaleY);
             for (let i = 1; i < vertices.length; i++) {
-                ctx.lineTo(vertices[i][0] * scaleX, vertices[i][1] * scaleY);
+                ctx.lineTo(vertices[i][0] * scaleX, height - (vertices[i][1] + 26.60) * scaleY);
             }
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Adjustable center hole
+            // Adjustable center hole, flipped y-coordinate
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10; // Canvas units
+            const adjustedHoleY = height - (holeY + 26.60) * scaleY; // Flip and shift
             ctx.beginPath();
-            ctx.arc(holeX * 10, holeY * 10, holeRadius, 0, Math.PI * 2);
+            ctx.arc(holeX * 10, adjustedHoleY, holeRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
@@ -296,7 +298,7 @@ const partsLibrary = {
 
             let dxf = ["0", "SECTION", "2", "ENTITIES"];
             
-            // Define DXF polyline
+            // Define DXF polyline (unchanged for DXF, positive-y-up)
             dxf.push(
                 "0", "LWPOLYLINE", "8", "0",
                 "90", "6", "70", "1"
@@ -315,7 +317,7 @@ const partsLibrary = {
             }
             dxf.push("0", "SEQEND");
             
-            // Adjustable center hole
+            // Adjustable center hole (DXF uses original coordinates)
             const holeRadius = holeSize / 2; // Inches
             dxf.push(
                 "0", "CIRCLE", "8", "0",
