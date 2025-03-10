@@ -1,4 +1,4 @@
-// Parts library with circular bracket, 4-bolt pattern, and scalable perforated bracket
+// Parts library with circular bracket, 4-bolt pattern, and adjustable perforated bracket
 const partsLibrary = {
     gear: {
         name: "Gear",
@@ -256,7 +256,7 @@ const partsLibrary = {
     },
     perforatedBracket: {
         name: "Perforated Mounting Bracket",
-        draw: (ctx, width, height, holeSize) => {
+        draw: (ctx, width, height, holeSize, holeX, holeY) => {
             // Original dimensions: width = 34.9 (17.45 * 2), height = 28.79 (2.19 to -26.60)
             const originalWidth = 34.9;
             const originalHeight = 28.79;
@@ -280,17 +280,15 @@ const partsLibrary = {
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Center hole, scaled proportionally
+            // Adjustable center hole
             ctx.globalCompositeOperation = "destination-out";
-            const originalHoleRadius = 4.76 * 10; // Canvas units
-            const scaleFactor = Math.min(scaleX, scaleY); // Use smaller scale to keep hole proportional
-            const holeRadius = (holeSize / 2) * 10; // Use input holeSize
+            const holeRadius = (holeSize / 2) * 10; // Canvas units
             ctx.beginPath();
-            ctx.arc(0, 0, holeRadius, 0, Math.PI * 2);
+            ctx.arc(holeX * 10, holeY * 10, holeRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
-        toDXF: (width, height, holeSize) => {
+        toDXF: (width, height, holeSize, holeX, holeY) => {
             const originalWidth = 34.9;
             const originalHeight = 28.79;
             const scaleX = width / originalWidth;
@@ -317,12 +315,11 @@ const partsLibrary = {
             }
             dxf.push("0", "SEQEND");
             
-            // Center hole
-            const scaleFactor = Math.min(scaleX, scaleY);
-            const holeRadius = holeSize / 2; // Use input holeSize in inches
+            // Adjustable center hole
+            const holeRadius = holeSize / 2; // Inches
             dxf.push(
                 "0", "CIRCLE", "8", "0",
-                "10", "0", "20", "0",
+                "10", holeX.toString(), "20", holeY.toString(),
                 "40", holeRadius.toString()
             );
             
@@ -365,9 +362,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("holeInset").style.display = "block";
                 document.getElementById("cornerRadius").style.display = "block";
                 document.getElementById("tubeDiameter").style.display = "none";
+                document.getElementById("holeX").style.display = "none";
+                document.getElementById("holeY").style.display = "none";
                 document.getElementById("holeInset").previousElementSibling.style.display = "block";
                 document.getElementById("cornerRadius").previousElementSibling.style.display = "block";
                 document.getElementById("tubeDiameter").previousElementSibling.style.display = "none";
+                document.getElementById("holeX").previousElementSibling.style.display = "none";
+                document.getElementById("holeY").previousElementSibling.style.display = "none";
             } else if (partType === "circleBracket") {
                 document.getElementById("holeSize").value = "0.25";
                 document.getElementById("holeInset").value = "0.5";
@@ -375,19 +376,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("cornerRadius").style.display = "none";
                 document.getElementById("holeInset").style.display = "block";
                 document.getElementById("tubeDiameter").style.display = "none";
+                document.getElementById("holeX").style.display = "none";
+                document.getElementById("holeY").style.display = "none";
                 document.getElementById("holeInset").previousElementSibling.style.display = "block";
                 document.getElementById("cornerRadius").previousElementSibling.style.display = "none";
                 document.getElementById("tubeDiameter").previousElementSibling.style.display = "none";
+                document.getElementById("holeX").previousElementSibling.style.display = "none";
+                document.getElementById("holeY").previousElementSibling.style.display = "none";
             } else if (partType === "perforatedBracket") {
                 document.getElementById("holeSize").value = "0.25";
                 document.getElementById("holeInset").value = "0.5";
                 document.getElementById("cornerRadius").value = "0";
+                document.getElementById("holeX").value = "0";
+                document.getElementById("holeY").value = "0";
                 document.getElementById("holeInset").style.display = "none";
                 document.getElementById("cornerRadius").style.display = "none";
                 document.getElementById("tubeDiameter").style.display = "none";
+                document.getElementById("holeX").style.display = "block";
+                document.getElementById("holeY").style.display = "block";
                 document.getElementById("holeInset").previousElementSibling.style.display = "none";
                 document.getElementById("cornerRadius").previousElementSibling.style.display = "none";
                 document.getElementById("tubeDiameter").previousElementSibling.style.display = "none";
+                document.getElementById("holeX").previousElementSibling.style.display = "block";
+                document.getElementById("holeY").previousElementSibling.style.display = "block";
+            } else {
+                document.getElementById("hole-options").style.display = "none";
             }
             console.log("Part selected:", partType);
         });
@@ -402,16 +415,19 @@ function previewPart() {
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
+    const holeX = partType === "Perforated Mounting Bracket" ? parseFloat(document.getElementById("holeX").value || 0) : 0;
+    const holeY = partType === "Perforated Mounting Bracket" ? parseFloat(document.getElementById("holeY").value || 0) : 0;
 
-    console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius });
+    console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius, holeX, holeY });
 
     if (!width || width <= 0 || 
         (partType !== "Circular Bracket" && (!height || isNaN(height) || height <= 0)) || 
         ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket") && (!holeSize || isNaN(holeSize) || holeSize <= 0)) || 
         ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
-        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0))) {
-        alert("Please enter all required fields with positive values. Check console for details.");
-        console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius });
+        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) ||
+        (partType === "Perforated Mounting Bracket" && (isNaN(holeX) || isNaN(holeY)))) {
+        alert("Please enter all required fields with valid values. Check console for details.");
+        console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius, holeX, holeY });
         return;
     }
 
@@ -432,8 +448,6 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        const originalWidth = partType === "Perforated Mounting Bracket" ? 34.9 * 10 : width;
-        const originalHeight = partType === "Perforated Mounting Bracket" ? 28.79 * 10 : height;
         const translateX = 200 - width / 2; // Center horizontally
         const translateY = partType === "Circular Bracket" ? 200 - width / 2 : 200 - height; // Center circle, bottom for others
         ctx.translate(translateX, translateY);
@@ -444,7 +458,7 @@ function previewPart() {
             } else if (partType === "Circular Bracket") {
                 part.draw(ctx, width, height, holeSize, holeInset);
             } else if (partType === "Perforated Mounting Bracket") {
-                part.draw(ctx, width, height, holeSize);
+                part.draw(ctx, width, height, holeSize, holeX, holeY);
             } else {
                 part.draw(ctx, width, height);
             }
@@ -466,13 +480,16 @@ function downloadDXF() {
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
+    const holeX = partType === "Perforated Mounting Bracket" ? parseFloat(document.getElementById("holeX").value || 0) : 0;
+    const holeY = partType === "Perforated Mounting Bracket" ? parseFloat(document.getElementById("holeY").value || 0) : 0;
 
     if (!width || width <= 0 || 
         (partType !== "Circular Bracket" && (!height || isNaN(height) || height <= 0)) || 
         ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket") && (!holeSize || isNaN(holeSize) || holeSize <= 0)) || 
         ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
-        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0))) {
-        alert("Please enter all required fields with positive values.");
+        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) ||
+        (partType === "Perforated Mounting Bracket" && (isNaN(holeX) || isNaN(holeY)))) {
+        alert("Please enter all required fields with valid values.");
         return;
     }
 
@@ -480,7 +497,7 @@ function downloadDXF() {
     if (part) {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
                           partType === "Circular Bracket" ? part.toDXF(width, height, holeSize, holeInset) :
-                          partType === "Perforated Mounting Bracket" ? part.toDXF(width, height, holeSize) :
+                          partType === "Perforated Mounting Bracket" ? part.toDXF(width, height, holeSize, holeX, holeY) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
