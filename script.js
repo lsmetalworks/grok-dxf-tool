@@ -195,7 +195,7 @@ const partsLibrary = {
             const centerX = radius;
             const centerY = radius;
             const holeRadius = (holeSize / 2) * 10;
-            const inset = (radius - holeInset * 10);
+            const inset = Math.min(radius - holeRadius, Math.max(holeRadius, radius - holeInset * 10));
 
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
@@ -329,11 +329,13 @@ const partsLibrary = {
             }
             dxf.push("0", "SEQEND");
             
-            // Adjustable center hole (DXF uses original coordinates)
+            // Adjustable center hole with 180° rotation to match canvas
             const holeRadius = holeSize / 2; // Inches
+            const rotatedHoleX = -holeX; // Rotate 180: negate x
+            const rotatedHoleY = -holeY; // Rotate 180: negate y
             dxf.push(
                 "0", "CIRCLE", "8", "0",
-                "10", holeX.toString(), "20", holeY.toString(),
+                "10", rotatedHoleX.toString(), "20", rotatedHoleY.toString(),
                 "40", holeRadius.toString()
             );
             
@@ -343,17 +345,32 @@ const partsLibrary = {
     }
 };
 
+// Centralized input validation
+function validateInputs(partType, width, height, holeSize, holeInset, cornerRadius, holeX, holeY) {
+    const errors = [];
+    if (!width || width <= 0) errors.push("Width must be positive.");
+    if (partType !== "Circular Bracket" && (!height || height <= 0)) errors.push("Height must be positive.");
+    if (["Holed Mounting Plate", "Circular Bracket", "Perforated Mounting Bracket"].includes(partType)) {
+        if (!holeSize || holeSize <= 0) errors.push("Hole size must be positive.");
+        if (holeSize > Math.min(width, height)) errors.push("Hole size cannot exceed part dimensions.");
+    }
+    if (["Holed Mounting Plate", "Circular Bracket"].includes(partType) && holeInset < 0) errors.push("Hole inset cannot be negative.");
+    if (partType === "Holed Mounting Plate" && cornerRadius < 0) errors.push("Corner radius cannot be negative.");
+    if (partType === "Perforated Mounting Bracket" && (isNaN(holeX) || isNaN(holeY))) errors.push("Hole X and Y must be valid numbers.");
+    return errors.length ? errors.join("\n") : null;
+}
+
 // Ensure DOM is loaded before adding event listeners
 document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM fully loaded, setting up event listeners");
 
     const partItems = document.querySelectorAll("#parts-list li");
-    console.log("Found parts-list items:", partItems.length);
-
     if (partItems.length === 0) {
         console.error("No elements found with selector '#parts-list li'. Check HTML structure.");
+        alert("Parts list not found. Please ensure the HTML includes a #parts-list with list items.");
         return;
     }
+    console.log("Found parts-list items:", partItems.length);
 
     partItems.forEach(item => {
         item.addEventListener("click", () => {
@@ -434,13 +451,9 @@ function previewPart() {
 
     console.log("Previewing:", { partType, width, height, holeSize, holeInset, cornerRadius, holeX, holeY });
 
-    if (!width || width <= 0 || 
-        (partType !== "Circular Bracket" && (!height || isNaN(height) || height <= 0)) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket") && (!holeSize || isNaN(holeSize) || holeSize <= 0)) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
-        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) ||
-        (partType === "Perforated Mounting Bracket" && (isNaN(holeX) || isNaN(holeY)))) {
-        alert("Please enter all required fields with valid values. Check console for details.");
+    const validationError = validateInputs(partType, width / 10, height / 10, holeSize, holeInset, cornerRadius, holeX, holeY);
+    if (validationError) {
+        alert(`Invalid input:\n${validationError}\nCheck console for details.`);
         console.log("Validation failed:", { width, height, holeSize, holeInset, cornerRadius, holeX, holeY });
         return;
     }
@@ -450,7 +463,9 @@ function previewPart() {
         console.error("Canvas element 'part-preview' not found!");
         return;
     }
-    console.log("Canvas found:", { width: canvas.width, height: canvas.height });
+    canvas.width = Math.min(width + 40, 400); // 20px padding each side
+    canvas.height = Math.min(height + 40, 400);
+    console.log("Canvas resized:", { width: canvas.width, height: canvas.height });
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
@@ -462,8 +477,8 @@ function previewPart() {
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
         ctx.save();
-        const translateX = 200 - width / 2; // Center horizontally
-        const translateY = partType === "Circular Bracket" ? 200 - width / 2 : 200 - height; // Center circle, bottom for others
+        const translateX = canvas.width / 2 - width / 2; // Center horizontally
+        const translateY = partType === "Circular Bracket" ? canvas.height / 2 - width / 2 : canvas.height - height; // Center circle, bottom for others
         ctx.translate(translateX, translateY);
         console.log("Canvas translation:", { x: translateX, y: translateY });
         try {
@@ -479,6 +494,7 @@ function previewPart() {
             console.log("Preview drawn successfully for", partType);
         } catch (error) {
             console.error("Error drawing preview:", error);
+            alert("Failed to draw preview. Check console for details.");
         }
         ctx.restore();
     } else {
@@ -497,13 +513,9 @@ function downloadDXF() {
     const holeX = partType === "Perforated Mounting Bracket" ? parseFloat(document.getElementById("holeX").value || 0) : 0;
     const holeY = partType === "Perforated Mounting Bracket" ? parseFloat(document.getElementById("holeY").value || 0) : 0;
 
-    if (!width || width <= 0 || 
-        (partType !== "Circular Bracket" && (!height || isNaN(height) || height <= 0)) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket") && (!holeSize || isNaN(holeSize) || holeSize <= 0)) || 
-        ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && (!holeInset || isNaN(holeInset) || holeInset < 0)) || 
-        (partType === "Holed Mounting Plate" && (isNaN(cornerRadius) || cornerRadius < 0)) ||
-        (partType === "Perforated Mounting Bracket" && (isNaN(holeX) || isNaN(holeY)))) {
-        alert("Please enter all required fields with valid values.");
+    const validationError = validateInputs(partType, width, height, holeSize, holeInset, cornerRadius, holeX, holeY);
+    if (validationError) {
+        alert(`Invalid input:\n${validationError}`);
         return;
     }
 
