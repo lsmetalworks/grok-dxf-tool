@@ -7,6 +7,9 @@ body {
     display: flex;
     gap: 20px;
     justify-content: center;
+    flex-wrap: wrap; /* Responsive wrapping */
+    max-width: 1200px; /* Constrain total width */
+    margin: 0 auto; /* Center container */
 }
 
 .sidebar {
@@ -46,6 +49,8 @@ body {
 
 #part-preview {
     border: 1px solid #ccc;
+    width: 400px; /* Match JS max size */
+    height: 400px;
 }
 
 .config {
@@ -67,9 +72,10 @@ body {
 }
 
 #config-form input {
-    width: 100px;
+    width: 120px; /* Slightly wider for readability */
 }
 
 #config-form button {
     margin-top: 10px;
+    margin-right: 10px; /* Space between buttons */
 }
