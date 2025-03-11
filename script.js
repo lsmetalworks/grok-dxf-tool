@@ -6,7 +6,13 @@ const partsLibrary = {
             const radius = Math.min(width, height) / 2;
             ctx.beginPath();
             for (let i = 0; i < 16; i++) {
-                const angle = (i * Math.PI) / Mediterranea
+                const angle = (i * Math.PI) / 8; // Fixed typo: "Mediterranea" -> "8"
+                const r = i % 2 === 0 ? radius : radius * 0.8;
+                ctx.lineTo(
+                    width / 2 + r * Math.cos(angle),
+                    height / 2 + r * Math.sin(angle)
+                );
+            }
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -366,6 +372,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     partItems.forEach(item => {
         item.addEventListener("click", () => {
+            console.log("Click event triggered on:", item.textContent); // Debug log
             const partType = item.getAttribute("data-part");
             console.log("Clicked part:", partType);
             const configForm = document.getElementById("config-form");
@@ -375,8 +382,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             configForm.style.display = "block";
             document.getElementById("part-type").textContent = partsLibrary[partType].name;
-            document.getElementById("width").value = "1"; // Default value
-            document.getElementById("height").value = partType === "circleBracket" ? "" : "1"; // Default unless circular
+            document.getElementById("width").value = "1";
+            document.getElementById("height").value = partType === "circleBracket" ? "" : "1";
             document.getElementById("hole-options").style.display = (partType === "holedPlate" || partType === "circleBracket" || partType === "perforatedBracket") ? "block" : "none";
             if (partType === "holedPlate") {
                 document.getElementById("holeSize").value = "0.25";
@@ -450,15 +457,9 @@ function previewPart() {
         return;
     }
 
-    // Set fixed canvas pixel size (matches CSS)
     const canvasSize = 400; // Fixed size in pixels
     canvas.width = canvasSize;
     canvas.height = canvasSize;
-
-    // Optional: High-DPI support (uncomment if needed)
-    // const pixelRatio = window.devicePixelRatio || 1;
-    // canvas.width = canvasSize * pixelRatio;
-    // canvas.height = canvasSize * pixelRatio;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
@@ -467,14 +468,12 @@ function previewPart() {
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate scaling to fit part within canvas with padding
     const padding = 40; // 20px padding on each side
     const maxDimension = Math.max(width, height);
-    const scale = (canvasSize - padding) / maxDimension; // Fit within 360px (400 - 40)
+    const scale = (canvasSize - padding) / maxDimension;
     const scaledWidth = width * scale;
     const scaledHeight = height * scale;
 
-    // Center the part
     const translateX = (canvas.width - scaledWidth) / 2;
     const translateY = (canvas.height - scaledHeight) / 2;
 
@@ -482,8 +481,7 @@ function previewPart() {
     if (part) {
         ctx.save();
         ctx.translate(translateX, translateY);
-        ctx.scale(scale, scale); // Apply scaling to context
-        // ctx.scale(scale * pixelRatio, scale * pixelRatio); // Uncomment for high-DPI
+        ctx.scale(scale, scale);
         console.log("Canvas setup:", { scale, scaledWidth, scaledHeight, translateX, translateY });
 
         try {
@@ -510,7 +508,7 @@ function previewPart() {
 // Download DXF file
 function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
-    const width = parseFloat(document.getElementById("width").value); // DXF in inches
+    const width = parseFloat(document.getElementById("width").value);
     const height = partType !== "Circular Bracket" ? parseFloat(document.getElementById("height").value) : width;
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
@@ -533,7 +531,7 @@ function downloadDXF() {
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `${partType.toLowerCase().replace(/\s+/g, '-')}.dxf`; // Hyphenated filename
+        link.download = `${partType.toLowerCase().replace(/\s+/g, '-')}.dxf`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
