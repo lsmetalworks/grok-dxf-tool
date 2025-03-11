@@ -7,9 +7,9 @@ body {
     display: flex;
     gap: 20px;
     justify-content: center;
-    flex-wrap: wrap; /* Responsive wrapping */
-    max-width: 1200px; /* Constrain total width */
-    margin: 0 auto; /* Center container */
+    flex-wrap: wrap;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .sidebar {
@@ -49,7 +49,7 @@ body {
 
 #part-preview {
     border: 1px solid #ccc;
-    width: 400px; /* Match JS max size */
+    width: 400px; /* Matches JS canvasSize */
     height: 400px;
 }
 
@@ -72,10 +72,10 @@ body {
 }
 
 #config-form input {
-    width: 120px; /* Slightly wider for readability */
+    width: 120px;
 }
 
 #config-form button {
     margin-top: 10px;
-    margin-right: 10px; /* Space between buttons */
+    margin-right: 10px;
 }
