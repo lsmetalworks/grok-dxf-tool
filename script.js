@@ -257,12 +257,7 @@ const partsLibrary = {
     perforatedBracket: {
         name: "Perforated Mounting Bracket",
         draw: (ctx, width, height, holeSize, holeX, holeY) => {
-            const originalWidth = 34.9;  // x: -17.45 to 17.45
-            const originalHeight = 28.79; // y: -14.395 to 14.395 after centering
-            const scaleX = width / originalWidth;
-            const scaleY = height / originalHeight;
-
-            // Centered vertices (shifted by +12.205 on y-axis to center at 0,0)
+            // Use original coordinates centered at (0,0)
             const vertices = [
                 [12.51, 14.395],    // Top right
                 [17.45, -13.855],   // Bottom right outer
@@ -273,9 +268,9 @@ const partsLibrary = {
             ];
 
             ctx.beginPath();
-            ctx.moveTo(vertices[0][0] * scaleX, vertices[0][1] * scaleY);
+            ctx.moveTo(vertices[0][0], vertices[0][1]);
             for (let i = 1; i < vertices.length; i++) {
-                ctx.lineTo(vertices[i][0] * scaleX, vertices[i][1] * scaleY);
+                ctx.lineTo(vertices[i][0], vertices[i][1]);
             }
             ctx.closePath();
             ctx.fillStyle = "#666";
@@ -285,7 +280,7 @@ const partsLibrary = {
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
             ctx.beginPath();
-            ctx.arc(holeX * 10, holeY * 10, holeRadius, 0, Math.PI * 2); // No rotation needed now
+            ctx.arc(holeX * 10, holeY * 10, holeRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
@@ -314,7 +309,7 @@ const partsLibrary = {
             dxf.push("0", "SEQEND");
 
             const holeRadius = holeSize / 2;
-            const rotatedHoleX = -holeX; // Keep DXF rotation consistent with original
+            const rotatedHoleX = -holeX;
             const rotatedHoleY = -holeY;
             dxf.push(
                 "0", "CIRCLE", "8", "0",
@@ -459,11 +454,16 @@ function previewPart() {
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Adjust scaling for perforated bracket's actual dimensions
     const padding = 40; // 20px padding on each side
-    const maxDimension = Math.max(width, height);
+    const originalWidth = 34.9; // Perforated bracket's intrinsic width
+    const originalHeight = 28.79; // Perforated bracket's intrinsic height
+    const maxDimension = partType === "Perforated Mounting Bracket" ? 
+        Math.max(originalWidth * (width / originalWidth), originalHeight * (height / originalHeight)) : 
+        Math.max(width, height);
     const scale = (canvasSize - padding) / maxDimension;
-    const scaledWidth = width * scale;
-    const scaledHeight = height * scale;
+    const scaledWidth = (partType === "Perforated Mounting Bracket" ? originalWidth : width) * scale;
+    const scaledHeight = (partType === "Perforated Mounting Bracket" ? originalHeight : height) * scale;
 
     const translateX = (canvas.width - scaledWidth) / 2;
     const translateY = (canvas.height - scaledHeight) / 2;
