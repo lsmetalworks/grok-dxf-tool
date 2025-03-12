@@ -257,7 +257,7 @@ const partsLibrary = {
     perforatedBracket: {
         name: "Perforated Mounting Bracket",
         draw: (ctx, width, height, holeSize, holeX, holeY) => {
-            // Use original coordinates centered at (0,0)
+            // Define vertices for the bracket shape
             const vertices = [
                 [12.51, 14.395],    // Top right
                 [17.45, -13.855],   // Bottom right outer
@@ -267,6 +267,7 @@ const partsLibrary = {
                 [-12.51, 14.395]    // Top left
             ];
 
+            // Draw the bracket
             ctx.beginPath();
             ctx.moveTo(vertices[0][0], vertices[0][1]);
             for (let i = 1; i < vertices.length; i++) {
@@ -276,13 +277,20 @@ const partsLibrary = {
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Draw the adjustable center hole
+            // Calculate centroid for centering the hole
+            const [centerX, centerY] = calculateCentroid(vertices);
+
+            // Draw the adjustable center hole, offset from centroid
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
+            const adjustedHoleX = centerX + holeX; // Offset from centroid
+            const adjustedHoleY = centerY + holeY; // Offset from centroid
             ctx.beginPath();
-            ctx.arc(holeX * 10, holeY * 10, holeRadius, 0, Math.PI * 2);
+            ctx.arc(adjustedHoleX * 10, adjustedHoleY * 10, holeRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
+
+            console.log("Hole position:", { adjustedHoleX, adjustedHoleY, holeRadius });
         },
         toDXF: (width, height, holeSize, holeX, holeY) => {
             const originalWidth = 34.9;
@@ -308,12 +316,14 @@ const partsLibrary = {
             }
             dxf.push("0", "SEQEND");
 
+            // Calculate centroid for DXF hole positioning
+            const [centerX, centerY] = calculateCentroid(vertices);
             const holeRadius = holeSize / 2;
-            const rotatedHoleX = -holeX;
-            const rotatedHoleY = -holeY;
+            const adjustedHoleX = centerX + holeX;
+            const adjustedHoleY = centerY + holeY;
             dxf.push(
                 "0", "CIRCLE", "8", "0",
-                "10", rotatedHoleX.toString(), "20", rotatedHoleY.toString(),
+                "10", adjustedHoleX.toString(), "20", adjustedHoleY.toString(),
                 "40", holeRadius.toString()
             );
 
@@ -322,6 +332,30 @@ const partsLibrary = {
         }
     }
 };
+
+// Function to calculate the centroid of a polygon
+function calculateCentroid(vertices) {
+    let area = 0;
+    let cx = 0;
+    let cy = 0;
+    const n = vertices.length;
+
+    for (let i = 0; i < n; i++) {
+        const x0 = vertices[i][0];
+        const y0 = vertices[i][1];
+        const x1 = vertices[(i + 1) % n][0];
+        const y1 = vertices[(i + 1) % n][1];
+        const a = x0 * y1 - x1 * y0;
+        area += a;
+        cx += (x0 + x1) * a;
+        cy += (y0 + y1) * a;
+    }
+
+    area /= 2;
+    cx /= (6 * area);
+    cy /= (6 * area);
+    return [cx, cy];
+}
 
 // Centralized input validation aligned with HTML constraints
 function validateInputs(partType, width, height, holeSize, holeInset, cornerRadius, holeX, holeY) {
@@ -399,8 +433,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("holeSize").value = "0.25";
                 document.getElementById("holeInset").value = "0.5";
                 document.getElementById("cornerRadius").value = "0";
-                document.getElementById("holeX").value = "0";
-                document.getElementById("holeY").value = "0";
+                document.getElementById("holeX").value = "0"; // Default to center
+                document.getElementById("holeY").value = "0"; // Default to center
                 document.getElementById("holeInset").style.display = "none";
                 document.getElementById("cornerRadius").style.display = "none";
                 document.getElementById("holeX").style.display = "block";
@@ -454,7 +488,7 @@ function previewPart() {
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Adjust scaling for perforated bracket's actual dimensions
+    // Adjust scaling and centering for perforated bracket
     const padding = 40; // 20px padding on each side
     const originalWidth = 34.9; // Perforated bracket's intrinsic width
     const originalHeight = 28.79; // Perforated bracket's intrinsic height
@@ -465,8 +499,17 @@ function previewPart() {
     const scaledWidth = (partType === "Perforated Mounting Bracket" ? originalWidth : width) * scale;
     const scaledHeight = (partType === "Perforated Mounting Bracket" ? originalHeight : height) * scale;
 
-    const translateX = (canvas.width - scaledWidth) / 2;
-    const translateY = (canvas.height - scaledHeight) / 2;
+    // Center the part by aligning its centroid with the canvas center
+    let translateX = (canvasSize - scaledWidth) / 2;
+    let translateY = (canvasSize - scaledHeight) / 2;
+    if (partType === "Perforated Mounting Bracket") {
+        const centroid = calculateCentroid([
+            [12.51, 14.395], [17.45, -13.855], [16.06, -14.395],
+            [-16.06, -14.395], [-17.45, -13.855], [-12.51, 14.395]
+        ]);
+        translateX -= centroid[0] * scale;
+        translateY -= centroid[1] * scale;
+    }
 
     const part = Object.values(partsLibrary).find(p => p.name === partType);
     if (part) {
