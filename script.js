@@ -6,7 +6,7 @@ const partsLibrary = {
             const radius = Math.min(width, height) / 2;
             ctx.beginPath();
             for (let i = 0; i < 16; i++) {
-                const angle = (i * Math.PI) / 8; // Fixed typo: "Mediterranea" -> "8"
+                const angle = (i * Math.PI) / 8;
                 const r = i % 2 === 0 ? radius : radius * 0.8;
                 ctx.lineTo(
                     width / 2 + r * Math.cos(angle),
@@ -257,46 +257,37 @@ const partsLibrary = {
     perforatedBracket: {
         name: "Perforated Mounting Bracket",
         draw: (ctx, width, height, holeSize, holeX, holeY) => {
-            const originalWidth = 34.9;
-            const originalHeight = 28.79;
+            const originalWidth = 34.9;  // x: -17.45 to 17.45
+            const originalHeight = 28.79; // y: -14.395 to 14.395 after centering
             const scaleX = width / originalWidth;
             const scaleY = height / originalHeight;
 
-            const centerX = 0; // Symmetric around x = 0
-            const centerY = (2.19 + (-26.60)) / 2; // Midpoint: -12.205
-
-            ctx.save();
-            ctx.translate(width / 2, height / 2);
-            ctx.rotate(Math.PI); // 180 degrees
-            ctx.translate(-width / 2, -height / 2);
+            // Centered vertices (shifted by +12.205 on y-axis to center at 0,0)
+            const vertices = [
+                [12.51, 14.395],    // Top right
+                [17.45, -13.855],   // Bottom right outer
+                [16.06, -14.395],   // Bottom right inner
+                [-16.06, -14.395],  // Bottom left inner
+                [-17.45, -13.855],  // Bottom left outer
+                [-12.51, 14.395]    // Top left
+            ];
 
             ctx.beginPath();
-            const vertices = [
-                [12.51, 2.19],
-                [17.45, -26.06],
-                [16.06, -26.60],
-                [-16.06, -26.60],
-                [-17.45, -26.06],
-                [-12.51, 2.19]
-            ];
-            ctx.moveTo(vertices[0][0] * scaleX, (vertices[0][1] - centerY) * scaleY + height / 2);
+            ctx.moveTo(vertices[0][0] * scaleX, vertices[0][1] * scaleY);
             for (let i = 1; i < vertices.length; i++) {
-                ctx.lineTo(vertices[i][0] * scaleX, (vertices[i][1] - centerY) * scaleY + height / 2);
+                ctx.lineTo(vertices[i][0] * scaleX, vertices[i][1] * scaleY);
             }
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
 
+            // Draw the adjustable center hole
             ctx.globalCompositeOperation = "destination-out";
             const holeRadius = (holeSize / 2) * 10;
-            const rotatedHoleX = -holeX * 10;
-            const rotatedHoleY = -holeY * 10;
             ctx.beginPath();
-            ctx.arc(rotatedHoleX, rotatedHoleY + height / 2 - centerY * scaleY, holeRadius, 0, Math.PI * 2);
+            ctx.arc(holeX * 10, holeY * 10, holeRadius, 0, Math.PI * 2); // No rotation needed now
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
-
-            ctx.restore();
         },
         toDXF: (width, height, holeSize, holeX, holeY) => {
             const originalWidth = 34.9;
@@ -323,7 +314,7 @@ const partsLibrary = {
             dxf.push("0", "SEQEND");
 
             const holeRadius = holeSize / 2;
-            const rotatedHoleX = -holeX;
+            const rotatedHoleX = -holeX; // Keep DXF rotation consistent with original
             const rotatedHoleY = -holeY;
             dxf.push(
                 "0", "CIRCLE", "8", "0",
@@ -372,7 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     partItems.forEach(item => {
         item.addEventListener("click", () => {
-            console.log("Click event triggered on:", item.textContent); // Debug log
+            console.log("Click event triggered on:", item.textContent);
             const partType = item.getAttribute("data-part");
             console.log("Clicked part:", partType);
             const configForm = document.getElementById("config-form");
