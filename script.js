@@ -294,36 +294,42 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     },
-    mountingTab: {
+        mountingTab: {
         name: "Radius Rollcage Mounting Tab",
         draw: (ctx, width, height, holeRadius, tabRadius, tabHeight, cornerRadius) => {
             const centerX = width / 2;
-            const centerY = height / 2;
+            const scale = 50; // 50px per inch for better visibility (adjust as needed)
 
-            // Draw tab body first
+            // Calculate tab dimensions in canvas units
+            const tabTopY = height / 2 - (tabRadius + tabHeight / 2) * (scale / 10); // Center vertically
+            const scaledTabRadius = tabRadius * (scale / 10);
+            const scaledTabHeight = tabHeight * (scale / 10);
+            const scaledCornerRadius = cornerRadius * (scale / 10);
+            const scaledHoleRadius = holeRadius * (scale / 10);
+
+            // Draw tab body
             ctx.beginPath();
-            const tabStartX = centerX + tabRadius * 10;
-            const tabStartY = centerY - tabHeight * 5; // Shift tab up to center it better
-            ctx.moveTo(tabStartX, tabStartY);
-            ctx.arc(centerX, tabStartY, tabRadius * 10, 0, Math.PI, true); // Semicircle
-            ctx.lineTo(centerX - tabRadius * 10, tabStartY + tabHeight * 10); // Left side
-            ctx.arcTo(centerX - tabRadius * 10, tabStartY + tabHeight * 10 + cornerRadius * 10,
-                     centerX - tabRadius * 10 + cornerRadius * 10, tabStartY + tabHeight * 10 + cornerRadius * 10,
-                     cornerRadius * 10); // Bottom-left corner
-            ctx.arc(centerX, tabStartY + tabHeight * 10 + cornerRadius * 10,
-                    tabRadius * 10, Math.PI, 0, false); // Bottom arc
-            ctx.arcTo(centerX + tabRadius * 10, tabStartY + tabHeight * 10 + cornerRadius * 10,
-                     centerX + tabRadius * 10, tabStartY + tabHeight * 10,
-                     cornerRadius * 10); // Bottom-right corner
-            ctx.lineTo(tabStartX, tabStartY); // Back to start
+            const tabStartX = centerX + scaledTabRadius;
+            ctx.moveTo(tabStartX, tabTopY);
+            ctx.arc(centerX, tabTopY, scaledTabRadius, 0, Math.PI, true); // Top semicircle
+            ctx.lineTo(centerX - scaledTabRadius, tabTopY + scaledTabHeight); // Left side
+            ctx.arcTo(centerX - scaledTabRadius, tabTopY + scaledTabHeight + scaledCornerRadius,
+                     centerX - scaledTabRadius + scaledCornerRadius, tabTopY + scaledTabHeight + scaledCornerRadius,
+                     scaledCornerRadius); // Bottom-left corner
+            ctx.arc(centerX, tabTopY + scaledTabHeight + scaledCornerRadius,
+                    scaledTabRadius, Math.PI, 0, false); // Bottom arc
+            ctx.arcTo(centerX + scaledTabRadius, tabTopY + scaledTabHeight + scaledCornerRadius,
+                     centerX + scaledTabRadius, tabTopY + scaledTabHeight,
+                     scaledCornerRadius); // Bottom-right corner
+            ctx.lineTo(tabStartX, tabTopY); // Back to start
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Draw hole (positioned just below the semicircle, inside the tab)
+            // Draw hole (constrained to top vertex of semicircle)
             ctx.globalCompositeOperation = "destination-out";
             ctx.beginPath();
-            ctx.arc(centerX, tabStartY + holeRadius * 10 + 5, holeRadius * 10, 0, 2 * Math.PI); // Hole near top
+            ctx.arc(centerX, tabTopY, scaledHoleRadius, 0, 2 * Math.PI); // Hole at top vertex
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
@@ -332,33 +338,34 @@ const partsLibrary = {
             const centerX = width / 2;
             const centerY = height / 2;
 
-            // Hole (adjusted to match canvas position)
+            // Hole (at top vertex of semicircle)
+            const tabTopY = centerY - (tabHeight + tabRadius); // Top of semicircle in inches
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
                 "10", centerX.toString(),
-                "20", (centerY - tabHeight + holeRadius + 0.5).toString(), // Adjusted for inches
+                "20", tabTopY.toString(),
                 "40", holeRadius.toString()
             );
 
-            // Tab body (simplified polyline with arcs approximated)
-            const steps = 8;
+            // Tab body
+            const steps = 12; // More steps for smoother arcs
             dxf.push("0", "LWPOLYLINE", "8", "0", "90", (steps * 2 + 4).toString(), "70", "1");
-            dxf.push("10", (centerX + tabRadius).toString(), "20", (centerY - tabHeight).toString()); // Start
+            dxf.push("10", (centerX + tabRadius).toString(), "20", tabTopY.toString()); // Start
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI * (i / steps);
                 const x = centerX + tabRadius * Math.cos(angle);
-                const y = centerY - tabHeight + tabRadius * Math.sin(angle);
+                const y = tabTopY + tabRadius * Math.sin(angle);
                 dxf.push("10", x.toString(), "20", y.toString());
             }
-            dxf.push("10", (centerX - tabRadius).toString(), "20", (centerY + tabHeight).toString()); // Left bottom
+            dxf.push("10", (centerX - tabRadius).toString(), "20", (tabTopY + tabHeight).toString()); // Left bottom
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI + Math.PI * (i / steps);
                 const x = centerX + tabRadius * Math.cos(angle);
-                const y = centerY + tabHeight + cornerRadius * (1 - Math.cos(angle));
+                const y = tabTopY + tabHeight + cornerRadius * (1 - Math.cos(angle));
                 dxf.push("10", x.toString(), "20", y.toString());
             }
-            dxf.push("10", (centerX + tabRadius).toString(), "20", (centerY - tabHeight).toString()); // Back to start
+            dxf.push("10", (centerX + tabRadius).toString(), "20", tabTopY.toString()); // Back to start
             dxf.push("0", "SEQEND");
 
             dxf.push("0", "ENDSEC", "0", "EOF");
