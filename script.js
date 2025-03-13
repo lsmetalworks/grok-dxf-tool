@@ -531,7 +531,19 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             console.log("Part selected:", partType);
             previewPart(); // Auto-preview on selection
+
+            // Add event listener for preview button
+            const previewButton = document.querySelector("button[onclick='previewPart()']");
+            if (previewButton) {
+                previewButton.addEventListener("click", previewPart);
+            }
         });
+    });
+
+    // Add input change listeners for real-time updates
+    const inputs = document.querySelectorAll("#config-form input");
+    inputs.forEach(input => {
+        input.addEventListener("change", previewPart);
     });
 });
 
@@ -550,8 +562,8 @@ function previewPart() {
     };
     const libraryKey = partKeyMap[partTypeKey] || partTypeKey;
 
-    const width = parseFloat(document.getElementById("width").value) || (libraryKey === "mountingTab" ? (2 * parseFloat(document.getElementById("tabRadius").value) || 3.78) : 10); // Default to tab width if empty
-    const height = libraryKey !== "circleBracket" ? (parseFloat(document.getElementById("height").value) || (libraryKey === "mountingTab" ? (parseFloat(document.getElementById("tabHeight").value) + parseFloat(document.getElementById("tabRadius").value) || 7.7) : 10)) : width;
+    const width = parseFloat(document.getElementById("width").value) || (libraryKey === "mountingTab" ? (2 * parseFloat(document.getElementById("tabRadius").value) || 3.78) * 10 : 10); // Default to tab width if empty, in canvas units
+    const height = libraryKey !== "circleBracket" ? (parseFloat(document.getElementById("height").value) || (libraryKey === "mountingTab" ? (parseFloat(document.getElementById("tabHeight").value) + parseFloat(document.getElementById("tabRadius").value) || 7.7) * 10 : 10)) : width;
     const holeSize = (libraryKey === "holedPlate" || libraryKey === "circleBracket" || libraryKey === "perforatedBracket" || libraryKey === "mountingTab") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = (libraryKey === "holedPlate" || libraryKey === "circleBracket") ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = libraryKey === "holedPlate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
@@ -626,7 +638,7 @@ function previewPart() {
             console.log("Preview drawn successfully for", partType);
         } catch (error) {
             console.error("Error drawing preview:", error);
-            alert("Failed to draw preview. Check console for details.");
+            alert("Failed to draw preview. Check console for details: " + error.message);
         }
         ctx.restore();
     } else {
