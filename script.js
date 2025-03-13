@@ -294,7 +294,7 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     },
-          mountingTab: {
+    mountingTab: {
         name: "Radius Rollcage Mounting Tab",
         draw: (ctx, width, height, holeRadius, tabRadius, tabHeight, cornerRadius) => {
             const centerX = width / 2;
@@ -374,7 +374,56 @@ const partsLibrary = {
     }
 };
 
-// ... (keep other parts like rectangle, gusset, etc. unchanged)
+// Function to calculate the centroid of a polygon
+function calculateCentroid(vertices) {
+    let area = 0;
+    let cx = 0;
+    let cy = 0;
+    const n = vertices.length;
+
+    for (let i = 0; i < n; i++) {
+        const x0 = vertices[i][0];
+        const y0 = vertices[i][1];
+        const x1 = vertices[(i + 1) % n][0];
+        const y1 = vertices[(i + 1) % n][1];
+        const a = x0 * y1 - x1 * y0;
+        area += a;
+        cx += (x0 + x1) * a;
+        cy += (y0 + y1) * a;
+    }
+
+    area /= 2;
+    cx /= (6 * area);
+    cy /= (6 * area);
+    return [cx, cy];
+}
+
+// Centralized input validation aligned with HTML constraints
+function validateInputs(partType, width, height, holeSize, holeInset, cornerRadius, holeX, holeY, tabRadius, tabHeight) {
+    const errors = [];
+    if (!width || width < 0.1) errors.push("Width must be at least 0.1 inches.");
+    if (partType !== "Circular Bracket" && partType !== "Radius Rollcage Mounting Tab" && (!height || height < 0.1)) errors.push("Height must be at least 0.1 inches.");
+    if (["Holed Mounting Plate", "Circular Bracket", "Perforated Mounting Bracket", "Radius Rollcage Mounting Tab"].includes(partType)) {
+        if (!holeSize || holeSize < 0.1) errors.push("Hole size must be at least 0.1 inches.");
+        if (holeSize > 10) errors.push("Hole size cannot exceed 10 inches.");
+        if (partType !== "Radius Rollcage Mounting Tab" && holeSize > Math.min(width, height)) errors.push("Hole size cannot exceed part dimensions.");
+    }
+    if (["Holed Mounting Plate", "Circular Bracket"].includes(partType)) {
+        if (holeInset < 0.25) errors.push("Hole offset must be at least 0.25 inches.");
+    }
+    if (partType === "Holed Mounting Plate") {
+        if (cornerRadius < 0) errors.push("Corner radius cannot be negative.");
+        if (cornerRadius > 1) errors.push("Corner radius cannot exceed 1 inch.");
+    }
+    if (partType === "Perforated Mounting Bracket" && (isNaN(holeX) || isNaN(holeY))) errors.push("Hole X and Y must be valid numbers.");
+    if (partType === "Radius Rollcage Mounting Tab") {
+        if (!tabRadius || tabRadius < 0.1) errors.push("Tab radius must be at least 0.1 inches.");
+        if (!tabHeight || tabHeight < 0.1) errors.push("Tab height must be at least 0.1 inches.");
+        if (cornerRadius < 0) errors.push("Tab corner radius cannot be negative.");
+        if (holeSize / 2 > tabRadius) errors.push("Hole radius cannot exceed tab radius.");
+    }
+    return errors.length ? errors.join("\n") : null;
+}
 
 // Ensure DOM is loaded before adding event listeners
 document.addEventListener("DOMContentLoaded", () => {
@@ -399,7 +448,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             configForm.style.display = "block";
-            document.getElementById("part-type").textContent = partsLibrary[partType].name;
+            document.getElementById("part-type").textContent = partsLibrary[partType]?.name || "Unknown Part";
 
             // Show/hide base inputs
             document.getElementById("width").parentElement.style.display = partType !== "mountingTab" ? "block" : "none";
@@ -484,12 +533,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// ... (keep previewPart, downloadDXF, calculateCentroid, and validateInputs unchanged)
 // Preview the part on canvas
 function previewPart() {
     const partType = document.getElementById("part-type").textContent;
-    const width = parseFloat(document.getElementById("width").value) * 10; // Canvas units (10px = 1in)
-    const height = partType !== "Circular Bracket" ? parseFloat(document.getElementById("height").value) * 10 : width;
+    const width = parseFloat(document.getElementById("width").value) || (partType === "mountingTab" ? (2 * parseFloat(document.getElementById("tabRadius").value) || 3.78) : 10); // Default to tab width if empty
+    const height = partType !== "Circular Bracket" ? (parseFloat(document.getElementById("height").value) || (partType === "mountingTab" ? (parseFloat(document.getElementById("tabHeight").value) + parseFloat(document.getElementById("tabRadius").value) || 7.7) : 10)) : width;
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket" || partType === "Radius Rollcage Mounting Tab") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
@@ -557,7 +605,7 @@ function previewPart() {
             } else if (partType === "Perforated Mounting Bracket") {
                 part.draw(ctx, width, height, holeSize, holeX, holeY);
             } else if (partType === "Radius Rollcage Mounting Tab") {
-                part.draw(ctx, width, height, holeSize / 2, tabRadius, tabHeight, tabCornerRadius);
+                part.draw(ctx, scaledWidth, scaledHeight, holeSize / 2, tabRadius, tabHeight, tabCornerRadius);
             } else {
                 part.draw(ctx, width, height);
             }
@@ -575,8 +623,8 @@ function previewPart() {
 // Download DXF file
 function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
-    const width = parseFloat(document.getElementById("width").value);
-    const height = partType !== "Circular Bracket" ? parseFloat(document.getElementById("height").value) : width;
+    const width = parseFloat(document.getElementById("width").value) || (partType === "mountingTab" ? (2 * parseFloat(document.getElementById("tabRadius").value) || 3.78) : 1);
+    const height = partType !== "Circular Bracket" ? (parseFloat(document.getElementById("height").value) || (partType === "mountingTab" ? (parseFloat(document.getElementById("tabHeight").value) + parseFloat(document.getElementById("tabRadius").value) || 7.7) : 1)) : width;
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Perforated Mounting Bracket" || partType === "Radius Rollcage Mounting Tab") ? parseFloat(document.getElementById("holeSize").value || 0) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? parseFloat(document.getElementById("holeInset").value || 0.5) : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? parseFloat(document.getElementById("cornerRadius").value || 0) : 0;
@@ -597,7 +645,7 @@ function downloadDXF() {
         const dxfContent = partType === "Holed Mounting Plate" ? part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
                           partType === "Circular Bracket" ? part.toDXF(width, height, holeSize, holeInset) :
                           partType === "Perforated Mounting Bracket" ? part.toDXF(width, height, holeSize, holeX, holeY) :
-                          partType === "Radius Rollcage Mounting Tab" ? part.toDXF(width, height, holeSize / 2, tabRadius, tabHeight, tabCornerRadius) :
+                          partType === "Radius Rollcage Mounting Tab" ? part.toDXF(tabRadius * 2, tabHeight + tabRadius, holeSize / 2, tabRadius, tabHeight, tabCornerRadius) :
                           part.toDXF(width, height);
         const blob = new Blob([dxfContent], { type: "application/dxf" });
         const link = document.createElement("a");
