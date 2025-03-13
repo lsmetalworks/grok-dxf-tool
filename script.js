@@ -300,16 +300,10 @@ const partsLibrary = {
             const centerX = width / 2;
             const centerY = height / 2;
 
-            // Draw hole (circle)
-            ctx.beginPath();
-            ctx.arc(centerX, centerY - tabHeight * 5, holeRadius * 10, 0, 2 * Math.PI); // Adjusted position
-            ctx.fillStyle = "#666";
-            ctx.fill();
-
-            // Draw tab body
+            // Draw tab body first
             ctx.beginPath();
             const tabStartX = centerX + tabRadius * 10;
-            const tabStartY = centerY;
+            const tabStartY = centerY - tabHeight * 5; // Shift tab up to center it better
             ctx.moveTo(tabStartX, tabStartY);
             ctx.arc(centerX, tabStartY, tabRadius * 10, 0, Math.PI, true); // Semicircle
             ctx.lineTo(centerX - tabRadius * 10, tabStartY + tabHeight * 10); // Left side
@@ -326,10 +320,10 @@ const partsLibrary = {
             ctx.fillStyle = "#666";
             ctx.fill();
 
-            // Cut out the hole
+            // Draw hole (positioned just below the semicircle, inside the tab)
             ctx.globalCompositeOperation = "destination-out";
             ctx.beginPath();
-            ctx.arc(centerX, centerY - tabHeight * 5, holeRadius * 10, 0, 2 * Math.PI);
+            ctx.arc(centerX, tabStartY + holeRadius * 10 + 5, holeRadius * 10, 0, 2 * Math.PI); // Hole near top
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         },
@@ -338,23 +332,23 @@ const partsLibrary = {
             const centerX = width / 2;
             const centerY = height / 2;
 
-            // Hole
+            // Hole (adjusted to match canvas position)
             dxf.push(
                 "0", "CIRCLE",
                 "8", "0",
                 "10", centerX.toString(),
-                "20", (centerY - tabHeight).toString(),
+                "20", (centerY - tabHeight + holeRadius + 0.5).toString(), // Adjusted for inches
                 "40", holeRadius.toString()
             );
 
             // Tab body (simplified polyline with arcs approximated)
             const steps = 8;
             dxf.push("0", "LWPOLYLINE", "8", "0", "90", (steps * 2 + 4).toString(), "70", "1");
-            dxf.push("10", (centerX + tabRadius).toString(), "20", centerY.toString()); // Start
+            dxf.push("10", (centerX + tabRadius).toString(), "20", (centerY - tabHeight).toString()); // Start
             for (let i = 0; i <= steps; i++) {
                 const angle = Math.PI * (i / steps);
                 const x = centerX + tabRadius * Math.cos(angle);
-                const y = centerY + tabRadius * Math.sin(angle);
+                const y = centerY - tabHeight + tabRadius * Math.sin(angle);
                 dxf.push("10", x.toString(), "20", y.toString());
             }
             dxf.push("10", (centerX - tabRadius).toString(), "20", (centerY + tabHeight).toString()); // Left bottom
@@ -364,7 +358,7 @@ const partsLibrary = {
                 const y = centerY + tabHeight + cornerRadius * (1 - Math.cos(angle));
                 dxf.push("10", x.toString(), "20", y.toString());
             }
-            dxf.push("10", (centerX + tabRadius).toString(), "20", centerY.toString()); // Back to start
+            dxf.push("10", (centerX + tabRadius).toString(), "20", (centerY - tabHeight).toString()); // Back to start
             dxf.push("0", "SEQEND");
 
             dxf.push("0", "ENDSEC", "0", "EOF");
