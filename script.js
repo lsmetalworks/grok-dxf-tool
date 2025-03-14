@@ -241,20 +241,20 @@ const partsLibrary = {
             const cornerRadius = (4.8 / 25.4) * scale; // Bottom corner radius from SVG
             const centerX = adjustedWidth / 2;
 
-            // Draw main body (start from bottom center, build upward and back down)
+            // Draw main body (start from bottom-left, build upward)
             ctx.beginPath();
-            // Start at bottom center
-            ctx.moveTo(centerX, adjustedTabHeight);
-            // Bottom-left arc (from bottom center to left side, counterclockwise)
-            ctx.arc(centerX - tabRadius + cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, 0, Math.PI / 2, false);
-            // Left side up to top-left of semicircle
-            ctx.lineTo(centerX - tabRadius, tabRadius);
-            // Top semicircle (left to right, counterclockwise)
-            ctx.arc(centerX, tabRadius, tabRadius, Math.PI, 0, false);
-            // Right side down to bottom-right arc
-            ctx.lineTo(centerX + tabRadius, adjustedTabHeight - cornerRadius);
-            // Bottom-right arc (from right side to bottom center, clockwise)
-            ctx.arc(centerX + tabRadius - cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, Math.PI / 2, 0, true);
+            // Start at bottom-left
+            ctx.moveTo(0, adjustedTabHeight);
+            // Bottom-left arc to bottom center
+            ctx.arc(cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, Math.PI / 2, 0, true);
+            // Bottom-right arc from bottom center to right
+            ctx.arc(adjustedWidth - cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, Math.PI, 3 * Math.PI / 2, true);
+            // Right side up to top-right of semicircle
+            ctx.lineTo(adjustedWidth, tabRadius);
+            // Top semicircle (right to left, counterclockwise)
+            ctx.arc(centerX, tabRadius, tabRadius, 0, Math.PI, false);
+            // Left side down to bottom-left
+            ctx.lineTo(0, adjustedTabHeight);
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -263,7 +263,6 @@ const partsLibrary = {
             if (holeSize > 0) {
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.beginPath();
-                // Adjust hole position to be relative to the top semicircle
                 ctx.arc(centerX, tabRadius * 0.5, holeRadius, 0, Math.PI * 2); // Hole near top center
                 ctx.fill();
                 ctx.globalCompositeOperation = "source-over";
@@ -289,39 +288,38 @@ const partsLibrary = {
             // Main body polyline
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
 
-            // Start at bottom center
-            dxf.push("0", "VERTEX", "8", "0", "10", centerX.toString(), "20", adjustedHeight.toString());
+            // Start at bottom-left
+            dxf.push("0", "VERTEX", "8", "0", "10", "0", "20", adjustedHeight.toString());
 
             // Bottom-left arc
             for (let i = 0; i <= steps / 4; i++) {
-                const angle = i * (Math.PI / 2) / (steps / 4);
-                const x = centerX - tabRadius + cornerRadius + cornerRadius * Math.cos(angle);
+                const angle = Math.PI / 2 - i * (Math.PI / 2) / (steps / 4);
+                const x = cornerRadius + cornerRadius * Math.cos(angle);
                 const y = adjustedHeight - cornerRadius + cornerRadius * Math.sin(angle);
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
 
-            // Left side up
-            dxf.push("0", "VERTEX", "8", "0", "10", (centerX - tabRadius).toString(), "20", tabRadius.toString());
+            // Bottom-right arc
+            for (let i = 0; i <= steps / 4; i++) {
+                const angle = Math.PI + i * (Math.PI / 2) / (steps / 4);
+                const x = width - cornerRadius + cornerRadius * Math.cos(angle);
+                const y = adjustedHeight - cornerRadius + cornerRadius * Math.sin(angle);
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+            }
 
-            // Top semicircle (left to right)
+            // Right side up
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", tabRadius.toString());
+
+            // Top semicircle
             for (let i = 0; i <= steps / 2; i++) {
-                const angle = Math.PI + i * Math.PI / (steps / 2);
+                const angle = -i * Math.PI / (steps / 2);
                 const x = centerX + tabRadius * Math.cos(angle);
                 const y = tabRadius + tabRadius * Math.sin(angle);
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
 
-            // Right side down
-            dxf.push("0", "VERTEX", "8", "0", "10", (centerX + tabRadius).toString(), "20", (adjustedHeight - cornerRadius).toString());
-
-            // Bottom-right arc
-            for (let i = 0; i <= steps / 4; i++) {
-                const angle = Math.PI / 2 - i * (Math.PI / 2) / (steps / 4);
-                const x = centerX + tabRadius - cornerRadius + cornerRadius * Math.cos(angle);
-                const y = adjustedHeight - cornerRadius + cornerRadius * Math.sin(angle);
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
-            }
-
+            // Left side down
+            dxf.push("0", "VERTEX", "8", "0", "10", "0", "20", adjustedTabHeight.toString());
             dxf.push("0", "SEQEND");
 
             // Hole
@@ -475,7 +473,7 @@ function previewPart() {
             } else {
                 part.draw(ctx, width, height);
             }
-            console.log("Preview drawn successfully for", partType, "with scale:", scale);
+            console.log("Preview drawn successfully for", partType, "with scale:", scale, "width:", width, "height:", height);
         } catch (error) {
             console.error("Error drawing preview:", error);
             alert("Error generating preview. Check console for details.");
