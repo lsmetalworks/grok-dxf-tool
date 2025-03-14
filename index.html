@@ -5,24 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parts Builder - LS Metalworks</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .container { display: flex; gap: 20px; }
-        .sidebar, .preview, .config { flex: 1; }
-        #part-preview { max-width: 400px; max-height: 400px; border: 1px solid #ccc; }
-        #config-form label { display: block; margin: 5px 0; }
-        button { margin: 5px; padding: 5px 10px; }
-    </style>
 </head>
 <body>
+    <h1>LS Metalworks Parts Builder</h1>
     <div class="container">
         <div class="sidebar">
             <h2>Parts Library</h2>
             <ul id="parts-list">
+                <li data-part="gear">Gear</li>
                 <li data-part="rectangle">Rectangle Plate</li>
                 <li data-part="gusset">Triangle Gusset</li>
                 <li data-part="holedPlate">Holed Mounting Plate</li>
                 <li data-part="circleBracket">Circular Bracket</li>
-                <li data-part="perforatedBracket">Perforated Mounting Bracket</li>
             </ul>
         </div>
         <div class="preview">
@@ -34,31 +28,16 @@
             <div id="config-form" style="display: none;">
                 <label>Part Type: <span id="part-type"></span></label><br>
                 <label for="width">Width (in): </label>
-                <input type="number" id="width" min="0.1" step="0.1"><br>
+                <input type="number" id="width" min="1" step="0.1"><br>
                 <label for="height">Height (in): </label>
-                <input type="number" id="height" min="0.1" step="0.1"><br>
+                <input type="number" id="height" min="1" step="0.1"><br>
                 <div id="hole-options" style="display: none;">
                     <label for="holeSize">Hole Diameter (in): </label>
-                    <input type="number" id="holeSize" min="0.1" max="10" step="0.01"><br>
-                    <label for="holeInset">Hole Offset (in): </label>
-                    <input type="number" id="holeInset" min="0.25" step="0.01"><br>
+                    <input type="number" id="holeSize" min="0.1" max="1" step="0.01" value="0.25"><br>
+                    <label for="holeInset">Distance from Edge (in): </label>
+                    <input type="number" id="holeInset" min="0.25" step="0.01" value="0.5"><br>
                     <label for="cornerRadius">Corner Radius (in): </label>
-                    <input type="number" id="cornerRadius" min="0" max="1" step="0.01"><br>
-                    <label for="holeX">Hole X Position (in): </label>
-                    <input type="number" id="holeX" step="0.1"><br>
-                    <label for="holeY">Hole Y Position (in): </label>
-                    <input type="number" id="holeY" step="0.1"><br>
-                </div>
-                <!-- Added Mounting Tab-specific options -->
-                <div id="mounting-tab-options" style="display: none;">
-                    <label for="holeRadius">Hole Radius (in): </label>
-                    <input type="number" id="holeRadius" min="0.1" step="0.1" value="0.94"><br> <!-- 24/25.4 -->
-                    <label for="tabRadius">Tab Radius (in): </label>
-                    <input type="number" id="tabRadius" min="0.1" step="0.1" value="1.89"><br> <!-- 48/25.4 -->
-                    <label for="tabHeight">Tab Height (in): </label>
-                    <input type="number" id="tabHeight" min="0.1" step="0.1" value="5.81"><br> <!-- 147.5515/25.4 -->
-                    <label for="tabCornerRadius">Tab Corner Radius (in): </label>
-                    <input type="number" id="tabCornerRadius" min="0" step="0.01" value="0.19"><br> <!-- 4.8/25.4 -->
+                    <input type="number" id="cornerRadius" min="0" max="1" step="0.01" value="0"><br>
                 </div>
                 <button onclick="previewPart()">Preview</button>
                 <button onclick="downloadDXF()">Download DXF</button>
