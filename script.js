@@ -1,4 +1,4 @@
-// Parts library with circular bracket and 4-bolt pattern
+// Parts library with circular bracket, 4-bolt pattern, and roll cage tab
 const partsLibrary = {
     rectangle: {
         name: "Rectangle Plate",
@@ -222,6 +222,93 @@ const partsLibrary = {
             dxf.push("0", "ENDSEC", "0", "EOF");
             return dxf.join("\n");
         }
+    },
+    rollCageTab: {
+        name: "Roll Cage Tab",
+        draw: (ctx, width, height, holeSize) => {
+            const scale = 10; // Consistent with other parts (inches to canvas units)
+            const holeRadius = (holeSize / 2) * scale;
+            const tabRadius = width * scale / 2; // Top circle radius
+            const cornerRadius = 4.8 * scale / 25.4; // From SVG (4.8 units converted to inches)
+            const centerX = width * scale / 2;
+            const holeY = tabRadius * 0.5; // Position hole near top
+
+            // Draw main body
+            ctx.beginPath();
+            // Top semicircle
+            ctx.arc(centerX, tabRadius, tabRadius, Math.PI, 0);
+            // Right side down to bottom arc
+            ctx.lineTo(width * scale, height * scale - cornerRadius);
+            ctx.arc(width * scale - cornerRadius, height * scale - cornerRadius, cornerRadius, 0, Math.PI / 2);
+            // Left side up from bottom arc
+            ctx.lineTo(cornerRadius, height * scale);
+            ctx.arc(cornerRadius, height * scale - cornerRadius, cornerRadius, Math.PI / 2, Math.PI);
+            ctx.closePath();
+            ctx.fillStyle = "#666";
+            ctx.fill();
+
+            // Draw hole
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.beginPath();
+            ctx.arc(centerX, holeY, holeRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalCompositeOperation = "source-over";
+
+            console.log("Drawing roll cage tab:", { width, height, holeSize });
+        },
+        toDXF: (width, height, holeSize) => {
+            const tabRadius = width / 2;
+            const cornerRadius = 4.8 / 25.4; // Convert SVG units to inches
+            const centerX = tabRadius;
+            const holeY = tabRadius * 0.5;
+            const holeRadius = holeSize / 2;
+            const steps = 16; // Number of segments for arcs
+
+            let dxf = ["0", "SECTION", "2", "ENTITIES"];
+
+            // Main body polyline
+            dxf.push("0", "POLYLINE", "8", "0", "66", "1");
+
+            // Top semicircle (right to left)
+            for (let i = 0; i <= steps / 2; i++) {
+                const angle = Math.PI * (1 - i / (steps / 2));
+                const x = centerX + tabRadius * Math.cos(angle);
+                const y = tabRadius + tabRadius * Math.sin(angle);
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+            }
+
+            // Right side down to bottom arc
+            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (height - cornerRadius).toString());
+            for (let i = 0; i <= steps / 4; i++) {
+                const angle = i * (Math.PI / 2) / (steps / 4);
+                const x = width - cornerRadius + cornerRadius * Math.cos(angle);
+                const y = height - cornerRadius + cornerRadius * Math.sin(angle);
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+            }
+
+            // Left side up from bottom arc
+            dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", height.toString());
+            for (let i = 0; i <= steps / 4; i++) {
+                const angle = Math.PI / 2 + i * (Math.PI / 2) / (steps / 4);
+                const x = cornerRadius * Math.cos(angle);
+                const y = height - cornerRadius + cornerRadius * Math.sin(angle);
+                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+            }
+
+            dxf.push("0", "SEQEND");
+
+            // Hole
+            dxf.push(
+                "0", "CIRCLE",
+                "8", "0",
+                "10", centerX.toString(),
+                "20", holeY.toString(),
+                "40", holeRadius.toString()
+            );
+
+            dxf.push("0", "ENDSEC", "0", "EOF");
+            return dxf.join("\n");
+        }
     }
 };
 
@@ -260,7 +347,7 @@ document.addEventListener("DOMContentLoaded", () => {
             heightInput.previousElementSibling.style.display = isCircular ? "none" : "block";
 
             const holeOptions = document.getElementById("hole-options");
-            const isHoledPart = partType === "holedPlate" || partType === "circleBracket";
+            const isHoledPart = partType === "holedPlate" || partType === "circleBracket" || partType === "rollCageTab";
             holeOptions.style.display = isHoledPart ? "block" : "none";
 
             if (isHoledPart) {
@@ -273,6 +360,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else {
                     document.getElementById("cornerRadius").style.display = "none";
                     document.getElementById("cornerRadius").previousElementSibling.style.display = "none";
+                }
+                if (partType !== "rollCageTab") {
+                    document.getElementById("holeInset").style.display = "block";
+                    document.getElementById("holeInset").previousElementSibling.style.display = "block";
+                } else {
+                    document.getElementById("holeInset").style.display = "none";
+                    document.getElementById("holeInset").previousElementSibling.style.display = "none";
                 }
             }
         });
@@ -287,7 +381,7 @@ function previewPart() {
     const width = parseFloat(document.getElementById("width").value) * 10;
     const height = partType !== "Circular Bracket" ? 
         parseFloat(document.getElementById("height").value) * 10 : width;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? 
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Roll Cage Tab") ? 
         parseFloat(document.getElementById("holeSize").value) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? 
         parseFloat(document.getElementById("holeInset").value) : 0;
@@ -314,8 +408,7 @@ function previewPart() {
     if (part) {
         ctx.save();
         
-        // Calculate scaling factor to fit within 80% of canvas dimensions
-        const padding = 0.8; // 80% of canvas size
+        const padding = 0.8;
         const canvasWidth = canvas.width;
         const canvasHeight = canvas.height;
         const partWidth = width;
@@ -323,9 +416,8 @@ function previewPart() {
         
         const scaleX = (canvasWidth * padding) / partWidth;
         const scaleY = (canvasHeight * padding) / partHeight;
-        const scale = Math.min(scaleX, scaleY); // Maintain aspect ratio
+        const scale = Math.min(scaleX, scaleY);
         
-        // Center the scaled part
         const scaledWidth = partWidth * scale;
         const scaledHeight = partHeight * scale;
         const translateX = (canvasWidth - scaledWidth) / 2;
@@ -339,6 +431,8 @@ function previewPart() {
                 part.draw(ctx, width, height, holeSize, holeInset, cornerRadius);
             } else if (partType === "Circular Bracket") {
                 part.draw(ctx, width, height, holeSize, holeInset);
+            } else if (partType === "Roll Cage Tab") {
+                part.draw(ctx, width, height, holeSize);
             } else {
                 part.draw(ctx, width, height);
             }
@@ -358,7 +452,7 @@ function downloadDXF() {
     const width = parseFloat(document.getElementById("width").value);
     const height = partType !== "Circular Bracket" ? 
         parseFloat(document.getElementById("height").value) : width;
-    const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? 
+    const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Roll Cage Tab") ? 
         parseFloat(document.getElementById("holeSize").value) : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? 
         parseFloat(document.getElementById("holeInset").value) : 0;
@@ -373,6 +467,8 @@ function downloadDXF() {
             part.toDXF(width, height, holeSize, holeInset, cornerRadius) :
             partType === "Circular Bracket" ? 
             part.toDXF(width, height, holeSize, holeInset) :
+            partType === "Roll Cage Tab" ?
+            part.toDXF(width, height, holeSize) :
             part.toDXF(width, height);
         
         const blob = new Blob([dxfContent], { type: "application/dxf" });
@@ -390,7 +486,7 @@ function validateInputs(partType, width, height, holeSize, holeInset, cornerRadi
     if (isNaN(width) || width <= 0) errors.push("Width must be a positive number");
     if (partType !== "Circular Bracket" && (isNaN(height) || height <= 0)) 
         errors.push("Height must be a positive number");
-    if ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && 
+    if ((partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Roll Cage Tab") && 
         (isNaN(holeSize) || holeSize <= 0)) 
         errors.push("Hole size must be a positive number");
     if ((partType === "Holed Mounting Plate" || partType === "Circular Bracket") && 
