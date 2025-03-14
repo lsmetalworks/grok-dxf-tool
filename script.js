@@ -231,8 +231,8 @@ const partsLibrary = {
             const svgHeight = 196.67934 / 25.4;
             const aspectRatio = svgHeight / svgWidth;
 
-            // Adjust dimensions to maintain aspect ratio
-            const adjustedHeight = width * aspectRatio;
+            // Use user-provided height if valid, otherwise calculate based on aspect ratio
+            const adjustedHeight = isNaN(height / scale) || height / scale <= 0 ? width * aspectRatio : height / scale;
             const adjustedWidth = width * scale;
             const adjustedTabHeight = adjustedHeight * scale;
 
@@ -257,11 +257,13 @@ const partsLibrary = {
             ctx.fill();
 
             // Draw hole
-            ctx.globalCompositeOperation = "destination-out";
-            ctx.beginPath();
-            ctx.arc(centerX, holeY, holeRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalCompositeOperation = "source-over";
+            if (holeSize > 0) {
+                ctx.globalCompositeOperation = "destination-out";
+                ctx.beginPath();
+                ctx.arc(centerX, holeY, holeRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalCompositeOperation = "source-over";
+            }
 
             console.log("Drawing roll cage tab:", { width, height: adjustedHeight, holeSize });
         },
@@ -269,7 +271,7 @@ const partsLibrary = {
             const svgWidth = 128.66476 / 25.4;
             const svgHeight = 196.67934 / 25.4;
             const aspectRatio = svgHeight / svgWidth;
-            const adjustedHeight = width * aspectRatio;
+            const adjustedHeight = isNaN(height) || height <= 0 ? width * aspectRatio : height;
 
             const tabRadius = width / 2;
             const cornerRadius = 4.8 / 25.4;
@@ -312,13 +314,15 @@ const partsLibrary = {
             dxf.push("0", "SEQEND");
 
             // Hole
-            dxf.push(
-                "0", "CIRCLE",
-                "8", "0",
-                "10", centerX.toString(),
-                "20", holeY.toString(),
-                "40", holeRadius.toString()
-            );
+            if (holeSize > 0) {
+                dxf.push(
+                    "0", "CIRCLE",
+                    "8", "0",
+                    "10", centerX.toString(),
+                    "20", holeY.toString(),
+                    "40", holeRadius.toString()
+                );
+            }
 
             dxf.push("0", "ENDSEC", "0", "EOF");
             return dxf.join("\n");
@@ -392,16 +396,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function previewPart() {
     const partType = document.getElementById("part-type").textContent;
-    const width = parseFloat(document.getElementById("width").value) * 10;
-    const heightInput = parseFloat(document.getElementById("height").value) * 10;
+    const width = parseFloat(document.getElementById("width").value) * 10 || 20; // Default to 2 inches (20 units) if empty
+    const heightInput = parseFloat(document.getElementById("height").value) * 10 || null;
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Roll Cage Tab") ? 
-        parseFloat(document.getElementById("holeSize").value) : 0;
+        parseFloat(document.getElementById("holeSize").value) || 0 : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? 
-        parseFloat(document.getElementById("holeInset").value) : 0;
+        parseFloat(document.getElementById("holeInset").value) || 0 : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? 
-        parseFloat(document.getElementById("cornerRadius").value) : 0;
+        parseFloat(document.getElementById("cornerRadius").value) || 0 : 0;
 
-    // Adjust height for Roll Cage Tab to maintain aspect ratio
+    // Adjust height for Roll Cage Tab to maintain aspect ratio if not provided
     let height = heightInput;
     if (partType === "Circular Bracket") {
         height = width;
@@ -409,7 +413,7 @@ function previewPart() {
         const svgWidth = 128.66476 / 25.4;
         const svgHeight = 196.67934 / 25.4;
         const aspectRatio = svgHeight / svgWidth;
-        height = width * aspectRatio;
+        height = heightInput || width * aspectRatio;
     }
 
     if (!validateInputs(partType, width, height, holeSize, holeInset, cornerRadius)) return;
@@ -473,14 +477,14 @@ function previewPart() {
 
 function downloadDXF() {
     const partType = document.getElementById("part-type").textContent;
-    const width = parseFloat(document.getElementById("width").value);
-    const heightInput = parseFloat(document.getElementById("height").value);
+    const width = parseFloat(document.getElementById("width").value) || 2; // Default to 2 inches if empty
+    const heightInput = parseFloat(document.getElementById("height").value) || null;
     const holeSize = (partType === "Holed Mounting Plate" || partType === "Circular Bracket" || partType === "Roll Cage Tab") ? 
-        parseFloat(document.getElementById("holeSize").value) : 0;
+        parseFloat(document.getElementById("holeSize").value) || 0 : 0;
     const holeInset = (partType === "Holed Mounting Plate" || partType === "Circular Bracket") ? 
-        parseFloat(document.getElementById("holeInset").value) : 0;
+        parseFloat(document.getElementById("holeInset").value) || 0 : 0;
     const cornerRadius = partType === "Holed Mounting Plate" ? 
-        parseFloat(document.getElementById("cornerRadius").value) : 0;
+        parseFloat(document.getElementById("cornerRadius").value) || 0 : 0;
 
     let height = heightInput;
     if (partType === "Circular Bracket") {
@@ -489,7 +493,7 @@ function downloadDXF() {
         const svgWidth = 128.66476 / 25.4;
         const svgHeight = 196.67934 / 25.4;
         const aspectRatio = svgHeight / svgWidth;
-        height = width * aspectRatio;
+        height = heightInput || width * aspectRatio;
     }
 
     if (!validateInputs(partType, width, height, holeSize, holeInset, cornerRadius)) return;
