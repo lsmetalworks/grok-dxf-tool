@@ -243,9 +243,9 @@ const partsLibrary = {
 
             // Draw main body (start from bottom center, build upward and back down)
             ctx.beginPath();
-            // Start at bottom center (adjusted for SVG transform)
+            // Start at bottom center
             ctx.moveTo(centerX, adjustedTabHeight);
-            // Bottom-left arc (from bottom center to left side)
+            // Bottom-left arc (from bottom center to left side, counterclockwise)
             ctx.arc(centerX - tabRadius + cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, 0, Math.PI / 2, false);
             // Left side up to top-left of semicircle
             ctx.lineTo(centerX - tabRadius, tabRadius);
@@ -253,7 +253,7 @@ const partsLibrary = {
             ctx.arc(centerX, tabRadius, tabRadius, Math.PI, 0, false);
             // Right side down to bottom-right arc
             ctx.lineTo(centerX + tabRadius, adjustedTabHeight - cornerRadius);
-            // Bottom-right arc (from right side to bottom center)
+            // Bottom-right arc (from right side to bottom center, clockwise)
             ctx.arc(centerX + tabRadius - cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, Math.PI / 2, 0, true);
             ctx.closePath();
             ctx.fillStyle = "#666";
@@ -263,6 +263,7 @@ const partsLibrary = {
             if (holeSize > 0) {
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.beginPath();
+                // Adjust hole position to be relative to the top semicircle
                 ctx.arc(centerX, tabRadius * 0.5, holeRadius, 0, Math.PI * 2); // Hole near top center
                 ctx.fill();
                 ctx.globalCompositeOperation = "source-over";
@@ -423,7 +424,7 @@ function previewPart() {
         const svgWidth = 128.66476 / 25.4;
         const svgHeight = 196.67934 / 25.4;
         const aspectRatio = svgHeight / svgWidth;
-        height = heightInput || width * aspectRatio;
+        height = (heightInput && heightInput > 0) ? heightInput : width * aspectRatio;
     }
 
     if (!validateInputs(partType, width, height, holeSize, holeInset, cornerRadius)) return;
@@ -503,7 +504,7 @@ function downloadDXF() {
         const svgWidth = 128.66476 / 25.4;
         const svgHeight = 196.67934 / 25.4;
         const aspectRatio = svgHeight / svgWidth;
-        height = heightInput || width * aspectRatio;
+        height = (heightInput && heightInput > 0) ? heightInput : width * aspectRatio;
     }
 
     if (!validateInputs(partType, width, height, holeSize, holeInset, cornerRadius)) return;
