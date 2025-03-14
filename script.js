@@ -313,10 +313,26 @@ function previewPart() {
     
     if (part) {
         ctx.save();
-        const translateX = (canvas.width - width) / 2;
-        const translateY = partType === "Circular Bracket" ? 
-            (canvas.height - width) / 2 : canvas.height - height - 10;
+        
+        // Calculate scaling factor to fit within 80% of canvas dimensions
+        const padding = 0.8; // 80% of canvas size
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const partWidth = width;
+        const partHeight = height;
+        
+        const scaleX = (canvasWidth * padding) / partWidth;
+        const scaleY = (canvasHeight * padding) / partHeight;
+        const scale = Math.min(scaleX, scaleY); // Maintain aspect ratio
+        
+        // Center the scaled part
+        const scaledWidth = partWidth * scale;
+        const scaledHeight = partHeight * scale;
+        const translateX = (canvasWidth - scaledWidth) / 2;
+        const translateY = (canvasHeight - scaledHeight) / 2;
+
         ctx.translate(translateX, translateY);
+        ctx.scale(scale, scale);
 
         try {
             if (partType === "Holed Mounting Plate") {
@@ -326,7 +342,7 @@ function previewPart() {
             } else {
                 part.draw(ctx, width, height);
             }
-            console.log("Preview drawn successfully for", partType);
+            console.log("Preview drawn successfully for", partType, "with scale:", scale);
         } catch (error) {
             console.error("Error drawing preview:", error);
             alert("Error generating preview. Check console for details.");
