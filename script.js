@@ -237,21 +237,21 @@ const partsLibrary = {
             const adjustedTabHeight = adjustedHeight * scale;
 
             const holeRadius = (holeSize / 2) * scale;
-            const tabRadius = adjustedWidth / 2;
-            const cornerRadius = (4.8 / 25.4) * scale; // From SVG, converted to inches
+            const tabRadius = adjustedWidth / 2; // Top semicircle radius
+            const cornerRadius = (4.8 / 25.4) * scale; // Bottom corner radius from SVG
             const centerX = adjustedWidth / 2;
-            const holeY = tabRadius * 0.5; // Position hole near top
+            const totalHeight = adjustedTabHeight; // Total height including semicircle
 
             // Draw main body
             ctx.beginPath();
-            // Top semicircle
-            ctx.arc(centerX, tabRadius, tabRadius, Math.PI, 0);
+            // Top semicircle (from bottom to top, left to right)
+            ctx.arc(centerX, tabRadius, tabRadius, Math.PI, 0, true); // Semicircle at top
             // Right side down to bottom arc
-            ctx.lineTo(adjustedWidth, adjustedTabHeight - cornerRadius);
-            ctx.arc(adjustedWidth - cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, 0, Math.PI / 2);
+            ctx.lineTo(adjustedWidth, totalHeight - cornerRadius);
+            ctx.arc(adjustedWidth - cornerRadius, totalHeight - cornerRadius, cornerRadius, -Math.PI / 2, 0, true);
             // Left side up from bottom arc
-            ctx.lineTo(cornerRadius, adjustedTabHeight);
-            ctx.arc(cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, Math.PI / 2, Math.PI);
+            ctx.lineTo(cornerRadius, totalHeight);
+            ctx.arc(cornerRadius, totalHeight - cornerRadius, cornerRadius, 0, Math.PI / 2, true);
             ctx.closePath();
             ctx.fillStyle = "#666";
             ctx.fill();
@@ -260,7 +260,7 @@ const partsLibrary = {
             if (holeSize > 0) {
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.beginPath();
-                ctx.arc(centerX, holeY, holeRadius, 0, Math.PI * 2);
+                ctx.arc(centerX, tabRadius * 0.5, holeRadius, 0, Math.PI * 2); // Hole near top center
                 ctx.fill();
                 ctx.globalCompositeOperation = "source-over";
             }
@@ -285,7 +285,7 @@ const partsLibrary = {
             // Main body polyline
             dxf.push("0", "POLYLINE", "8", "0", "66", "1");
 
-            // Top semicircle (right to left)
+            // Top semicircle (left to right, bottom to top)
             for (let i = 0; i <= steps / 2; i++) {
                 const angle = Math.PI * (1 - i / (steps / 2));
                 const x = centerX + tabRadius * Math.cos(angle);
@@ -296,7 +296,7 @@ const partsLibrary = {
             // Right side down to bottom arc
             dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", (adjustedHeight - cornerRadius).toString());
             for (let i = 0; i <= steps / 4; i++) {
-                const angle = i * (Math.PI / 2) / (steps / 4);
+                const angle = -Math.PI / 2 + i * (Math.PI / 2) / (steps / 4);
                 const x = width - cornerRadius + cornerRadius * Math.cos(angle);
                 const y = adjustedHeight - cornerRadius + cornerRadius * Math.sin(angle);
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
@@ -305,8 +305,8 @@ const partsLibrary = {
             // Left side up from bottom arc
             dxf.push("0", "VERTEX", "8", "0", "10", cornerRadius.toString(), "20", adjustedHeight.toString());
             for (let i = 0; i <= steps / 4; i++) {
-                const angle = Math.PI / 2 + i * (Math.PI / 2) / (steps / 4);
-                const x = cornerRadius * Math.cos(angle);
+                const angle = 0 + i * (Math.PI / 2) / (steps / 4);
+                const x = cornerRadius + cornerRadius * Math.cos(angle);
                 const y = adjustedHeight - cornerRadius + cornerRadius * Math.sin(angle);
                 dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
             }
