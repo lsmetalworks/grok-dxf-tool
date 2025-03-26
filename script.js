@@ -412,32 +412,55 @@ rollCageTab: createPart(
         }
     ),
     slottedHolePlate: createPart(
-        "Slotted Hole Plate",
-        (ctx, width, height, holeWidth, holeLength, holeInset) => {
-            ctx.fillStyle = "#666";
-            ctx.fillRect(0, 0, width * 10, height * 10);
-            
-            ctx.globalCompositeOperation = "destination-out";
-            const centers = [
-                [holeInset * 10, height * 10 / 2],
-                [width * 10 - holeInset * 10, height * 10 / 2]
-            ];
-            
-            centers.forEach(([x, y]) => {
-                ctx.beginPath();
-                // Draw rounded rectangle (slot)
-                const radius = holeWidth * 10 / 2;
-                ctx.moveTo(x - holeLength * 10 / 2 + radius, y - radius);
-                ctx.lineTo(x + holeLength * 10 / 2 - radius, y - radius);
-                ctx.arc(x + holeLength * 10 / 2 - radius, y, radius, -Math.PI/2, Math.PI/2);
-                ctx.lineTo(x - holeLength * 10 / 2 + radius, y + radius);
-                ctx.arc(x - holeLength * 10 / 2 + radius, y, radius, Math.PI/2, -Math.PI/2);
-                ctx.closePath();
-                ctx.fill();
-            });
-            
-            ctx.globalCompositeOperation = "source-over";
-        },
+    "Slotted Hole Plate",
+    function(ctx, width, height, holeWidth, holeLength, holeInset) {
+        // Clear canvas first
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        
+        // Calculate scaling factor to fit in canvas
+        const canvasPadding = 20;
+        const maxWidth = ctx.canvas.width - canvasPadding * 2;
+        const maxHeight = ctx.canvas.height - canvasPadding * 2;
+        
+        const scaleX = maxWidth / width;
+        const scaleY = maxHeight / height;
+        const scale = Math.min(scaleX, scaleY) * 0.8; // 80% of max possible scale
+        
+        // Save context and apply scaling
+        ctx.save();
+        ctx.translate(canvasPadding, canvasPadding);
+        ctx.scale(scale, scale);
+        
+        // Draw plate
+        ctx.fillStyle = "#666";
+        ctx.fillRect(0, 0, width, height);
+        
+        // Draw slots
+        ctx.globalCompositeOperation = "destination-out";
+        const centers = [
+            [holeInset, height/2],
+            [width - holeInset, height/2]
+        ];
+        
+        centers.forEach(([x, y]) => {
+            ctx.beginPath();
+            const radius = holeWidth/2;
+            // Horizontal slot
+            ctx.moveTo(x - holeLength/2 + radius, y - radius);
+            ctx.lineTo(x + holeLength/2 - radius, y - radius);
+            ctx.arc(x + holeLength/2 - radius, y, radius, -Math.PI/2, Math.PI/2);
+            ctx.lineTo(x - holeLength/2 + radius, y + radius);
+            ctx.arc(x - holeLength/2 + radius, y, radius, Math.PI/2, -Math.PI/2);
+            ctx.closePath();
+            ctx.fill();
+        });
+        
+        ctx.globalCompositeOperation = "source-over";
+        ctx.restore(); // Restore original transform
+        
+        console.log(`Drawn at scale ${scale.toFixed(2)} (${width}" × ${height}")`);
+    },
+)
         (width, height, holeWidth = 0.25, holeLength = 1, holeInset = 0.5) => {
             const radius = holeWidth/2;
             const dxf = ["0", "SECTION", "2", "ENTITIES"];
