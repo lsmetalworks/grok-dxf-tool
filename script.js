@@ -232,120 +232,116 @@ const partsLibrary = {
             return dxf.join("\n");
         }
     ),
-    rollCageTab: createPart(
-        "Roll Cage Tab",
-        (ctx, width, height, holeSize) => {
-            const scale = 10; // Inches to canvas units
-            const svgWidth = 128.66476 / 25.4; // Convert SVG units to inches
-            const svgHeight = 196.67934 / 25.4;
-            const aspectRatio = svgHeight / svgWidth;
+    // Updated Roll Cage Tab implementation
+rollCageTab: createPart(
+    "Roll Cage Tab",
+    (ctx, width, height, holeSize) => {
+        const scale = 10; // Inches to canvas units
+        const svgWidth = 128.66476 / 25.4; // Convert SVG units to inches
+        const svgHeight = 196.67934 / 25.4;
+        const aspectRatio = svgHeight / svgWidth;
 
-            // Use user-provided height if valid, otherwise calculate based on aspect ratio
-            const adjustedHeight = isNaN(height / scale) || height / scale <= 0 ? width * aspectRatio : height / scale;
-            const adjustedWidth = width * scale;
-            const adjustedTabHeight = adjustedHeight * scale;
+        // Calculate dimensions
+        const tabWidth = width * scale;
+        const tabHeight = (height || width * aspectRatio) * scale;
+        const holeRadius = (holeSize / 2) * scale;
+        const tabRadius = tabWidth / 2; // Top semicircle radius
+        const cornerRadius = (4.8 / 25.4) * scale; // Bottom corner radius
+        const centerX = tabWidth / 2;
 
-            const holeRadius = (holeSize / 2) * scale;
-            const tabRadius = adjustedWidth / 2; // Top semicircle radius
-            const cornerRadius = (4.8 / 25.4) * scale; // Bottom corner radius from SVG
-            const centerX = adjustedWidth / 2;
+        // Draw main body
+        ctx.beginPath();
+        // Start at bottom-left
+        ctx.moveTo(0, tabHeight);
+        // Bottom-left rounded corner
+        ctx.arc(cornerRadius, tabHeight - cornerRadius, cornerRadius, Math.PI / 2, 0, true);
+        // Bottom-right rounded corner
+        ctx.arc(tabWidth - cornerRadius, tabHeight - cornerRadius, cornerRadius, Math.PI, 3 * Math.PI / 2, true);
+        // Right side up to semicircle
+        ctx.lineTo(tabWidth, tabRadius);
+        // Top semicircle
+        ctx.arc(centerX, tabRadius, tabRadius, 0, Math.PI, false);
+        // Left side down to start point
+        ctx.lineTo(0, tabHeight);
+        ctx.closePath();
+        ctx.fillStyle = "#666";
+        ctx.fill();
 
-            // Draw main body (start from bottom-left, build upward)
+        // Draw hole if specified
+        if (holeSize > 0) {
+            ctx.globalCompositeOperation = "destination-out";
             ctx.beginPath();
-            // Start at bottom-left
-            ctx.moveTo(0, adjustedTabHeight);
-            // Bottom-left arc to bottom center
-            ctx.arc(cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, Math.PI / 2, 0, true);
-            // Bottom-right arc from bottom center to right
-            ctx.arc(adjustedWidth - cornerRadius, adjustedTabHeight - cornerRadius, cornerRadius, Math.PI, 3 * Math.PI / 2, true);
-            // Right side up to top-right of semicircle
-            ctx.lineTo(adjustedWidth, tabRadius);
-            // Top semicircle (right to left, counterclockwise)
-            ctx.arc(centerX, tabRadius, tabRadius, 0, Math.PI, false);
-            // Left side down to bottom-left
-            ctx.lineTo(0, adjustedTabHeight);
-            ctx.closePath();
-            ctx.fillStyle = "#666";
+            ctx.arc(centerX, tabRadius * 0.6, holeRadius, 0, Math.PI * 2);
             ctx.fill();
-
-            // Draw hole
-            if (holeSize > 0) {
-                ctx.globalCompositeOperation = "destination-out";
-                ctx.beginPath();
-                ctx.arc(centerX, tabRadius * 0.5, holeRadius, 0, Math.PI * 2); // Hole near top center
-                ctx.fill();
-                ctx.globalCompositeOperation = "source-over";
-            }
-
-            console.log("Drawing roll cage tab:", { width, height: adjustedHeight, holeSize });
-        },
-        (width, height, holeSize) => {
-            const svgWidth = 128.66476 / 25.4;
-            const svgHeight = 196.67934 / 25.4;
-            const aspectRatio = svgHeight / svgWidth;
-            const adjustedHeight = isNaN(height) || height <= 0 ? width * aspectRatio : height;
-
-            const tabRadius = width / 2;
-            const cornerRadius = 4.8 / 25.4;
-            const centerX = tabRadius;
-            const holeY = tabRadius * 0.5;
-            const holeRadius = holeSize / 2;
-            const steps = 16;
-
-            let dxf = ["0", "SECTION", "2", "ENTITIES"];
-
-            // Main body polyline
-            dxf.push("0", "POLYLINE", "8", "0", "66", "1");
-
-            // Start at bottom-left
-            dxf.push("0", "VERTEX", "8", "0", "10", "0", "20", adjustedHeight.toString());
-
-            // Bottom-left arc
-            for (let i = 0; i <= steps / 4; i++) {
-                const angle = Math.PI / 2 - i * (Math.PI / 2) / (steps / 4);
-                const x = cornerRadius + cornerRadius * Math.cos(angle);
-                const y = adjustedHeight - cornerRadius + cornerRadius * Math.sin(angle);
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
-            }
-
-            // Bottom-right arc
-            for (let i = 0; i <= steps / 4; i++) {
-                const angle = Math.PI + i * (Math.PI / 2) / (steps / 4);
-                const x = width - cornerRadius + cornerRadius * Math.cos(angle);
-                const y = adjustedHeight - cornerRadius + cornerRadius * Math.sin(angle);
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
-            }
-
-            // Right side up
-            dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", tabRadius.toString());
-
-            // Top semicircle
-            for (let i = 0; i <= steps / 2; i++) {
-                const angle = -i * Math.PI / (steps / 2);
-                const x = centerX + tabRadius * Math.cos(angle);
-                const y = tabRadius + tabRadius * Math.sin(angle);
-                dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
-            }
-
-            // Left side down
-            dxf.push("0", "VERTEX", "8", "0", "10", "0", "20", adjustedTabHeight.toString());
-            dxf.push("0", "SEQEND");
-
-            // Hole
-            if (holeSize > 0) {
-                dxf.push(
-                    "0", "CIRCLE",
-                    "8", "0",
-                    "10", centerX.toString(),
-                    "20", holeY.toString(),
-                    "40", holeRadius.toString()
-                );
-            }
-
-            dxf.push("0", "ENDSEC", "0", "EOF");
-            return dxf.join("\n");
+            ctx.globalCompositeOperation = "source-over";
         }
-    ),
+    },
+    (width, height, holeSize) => {
+        const svgWidth = 128.66476 / 25.4;
+        const svgHeight = 196.67934 / 25.4;
+        const aspectRatio = svgHeight / svgWidth;
+        const tabHeight = height || width * aspectRatio;
+        const tabRadius = width / 2;
+        const cornerRadius = 4.8 / 25.4;
+        const centerX = tabRadius;
+        const holeY = tabRadius * 0.6;
+        const holeRadius = holeSize / 2;
+        const steps = 16;
+
+        let dxf = ["0", "SECTION", "2", "ENTITIES"];
+
+        // Main body polyline
+        dxf.push("0", "POLYLINE", "8", "0", "66", "1");
+
+        // Start at bottom-left
+        dxf.push("0", "VERTEX", "8", "0", "10", "0", "20", tabHeight.toString());
+
+        // Bottom-left arc
+        for (let i = 0; i <= steps / 4; i++) {
+            const angle = Math.PI / 2 - i * (Math.PI / 2) / (steps / 4);
+            const x = cornerRadius + cornerRadius * Math.cos(angle);
+            const y = tabHeight - cornerRadius + cornerRadius * Math.sin(angle);
+            dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+        }
+
+        // Bottom-right arc
+        for (let i = 0; i <= steps / 4; i++) {
+            const angle = Math.PI + i * (Math.PI / 2) / (steps / 4);
+            const x = width - cornerRadius + cornerRadius * Math.cos(angle);
+            const y = tabHeight - cornerRadius + cornerRadius * Math.sin(angle);
+            dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+        }
+
+        // Right side up
+        dxf.push("0", "VERTEX", "8", "0", "10", width.toString(), "20", tabRadius.toString());
+
+        // Top semicircle
+        for (let i = 0; i <= steps / 2; i++) {
+            const angle = -i * Math.PI / (steps / 2);
+            const x = centerX + tabRadius * Math.cos(angle);
+            const y = tabRadius + tabRadius * Math.sin(angle);
+            dxf.push("0", "VERTEX", "8", "0", "10", x.toString(), "20", y.toString());
+        }
+
+        // Close the shape
+        dxf.push("0", "VERTEX", "8", "0", "10", "0", "20", tabHeight.toString());
+        dxf.push("0", "SEQEND");
+
+        // Hole if specified
+        if (holeSize > 0) {
+            dxf.push(
+                "0", "CIRCLE",
+                "8", "0",
+                "10", centerX.toString(),
+                "20", holeY.toString(),
+                "40", holeRadius.toString()
+            );
+        }
+
+        dxf.push("0", "ENDSEC", "0", "EOF");
+        return dxf.join("\n");
+    }
+),
     flangedBracket: createPart(
         "Flanged Bracket (L-Shaped)",
         (ctx, width, height, thickness) => {
